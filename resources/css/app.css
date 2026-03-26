@@ -1,0 +1,58 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --sidebar-width: 240px;
+  --transition-speed: 300ms;
+  --accent: #A8D5A2;
+  --sidebar-bg: #2D3A2E;
+  --card-bg: #FFFFFF;
+  --page-bg: #F5F7F5;
+  --text-primary: #1A1A1A;
+  --text-muted: #7A7A7A;
+}
+
+* { font-family: 'DM Sans', sans-serif; box-sizing: border-box; }
+h1, h2, h3, h4, .font-display { font-family: 'Plus Jakarta Sans', sans-serif; }
+body { background-color: var(--page-bg); margin: 0; }
+
+/* Smooth sidebar transition — NO jank, NO shake */
+.sidebar-wrapper {
+  width: var(--sidebar-width);
+  min-width: var(--sidebar-width);
+  transition: width var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1),
+              min-width var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: width;
+  overflow: hidden;
+}
+.sidebar-wrapper.collapsed {
+  width: 0;
+  min-width: 0;
+}
+.main-content {
+  transition: margin-left var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: margin-left;
+}
+
+/* Hero Slider */
+.hero-slider .slick-dots { bottom: 30px; }
+.hero-slider .slick-dots li button:before { color: white; opacity: 0.5; }
+.hero-slider .slick-dots li.slick-active button:before { color: #B59441; opacity: 1; }
+
+/* Room Card Inner Slider */
+.inner-slick .slick-dots.custom-dots { bottom: 15px; }
+.inner-slick .slick-dots.custom-dots li button:before { color: white; opacity: 0.6; }
+.inner-slick .slick-dots.custom-dots li.slick-active button:before { color: white; opacity: 1; font-size: 10px; }
+
+/* Feature Slider */
+.feature-slider .slick-track { display: flex !important; }
+.feature-slider .slick-slide { height: auto; }
+.feature-slider .slick-slide > div { height: 100%; }
+
+/* Offer Slider */
+.offer-slider-container .slick-track { display: flex !important; }
+.offer-slider-container .slick-slide { height: auto; }
+.offer-slider-container .slick-slide > div { height: 100%; }

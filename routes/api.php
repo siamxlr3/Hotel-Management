@@ -30,8 +30,10 @@ use App\Http\Controllers\Api\PayrollController;
 use App\Http\Controllers\Api\ReportController;
 
 // Public
-Route::post('/login',    [AuthController::class, 'login']);
-Route::post('/register', [AuthController::class, 'register']);
+Route::middleware('throttle:auth')->group(function () {
+    Route::post('/login',    [AuthController::class, 'login']);
+    Route::post('/register', [AuthController::class, 'register']);
+});
 
 // Protected
 Route::middleware('auth:sanctum')->group(function () {
@@ -110,5 +112,5 @@ Route::middleware('api')->group(function () {
     Route::apiResource('payrolls',          PayrollController::class);
 
     // Reports
-    Route::get('reports', [ReportController::class, 'index']);
+    Route::get('reports', [ReportController::class, 'index'])->middleware('throttle:reports');
 });

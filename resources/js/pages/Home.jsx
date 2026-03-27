@@ -35,6 +35,8 @@ const Home = () => {
     const [filterStatus, setFilterStatus] = useState('All');
     const [filterCategory, setFilterCategory] = useState('All');
     const [filterGuests, setFilterGuests] = useState('Any');
+    const [currentPage, setCurrentPage] = useState(1);
+    const roomsPerPage = 10;
 
     useEffect(() => {
         dispatch(homeThunks.fetch());
@@ -70,6 +72,23 @@ const Home = () => {
         const matchGuests = filterGuests === 'Any' || room.capacity >= parseInt(filterGuests);
         return matchStatus && matchCategory && matchGuests;
     });
+
+    // Pagination Logic
+    const totalPages = Math.ceil(filteredRooms.length / roomsPerPage);
+    const paginatedRooms = filteredRooms.slice(
+        (currentPage - 1) * roomsPerPage,
+        currentPage * roomsPerPage
+    );
+
+    // Reset to page 1 when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [filterStatus, filterCategory, filterGuests]);
+
+    const handlePageChange = (pageNumber) => {
+        setCurrentPage(pageNumber);
+        document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
+    };
 
     const offers = [
         {
@@ -295,9 +314,9 @@ const Home = () => {
                                 <div className="h-14 bg-gray-100 rounded-[1.5rem]" />
                             </div>
                          ))
-                    ) : filteredRooms.length === 0 ? (
+                    ) : paginatedRooms.length === 0 ? (
                         <div className="col-span-full py-20 text-center text-gray-400 font-light italic">{t('No rooms available in this category.')}</div>
-                    ) : filteredRooms.map((room, i) => (
+                    ) : paginatedRooms.map((room, i) => (
                         <motion.div 
                             key={room.id}
                             initial={{ opacity: 0, y: 30 }}
@@ -373,6 +392,72 @@ const Home = () => {
                         </motion.div>
                     ))}
                 </div>
+
+                {/* Pagination UI */}
+                {totalPages > 1 && (
+                    <div className="mt-20 flex flex-col items-center gap-6">
+                        <div className="flex items-center gap-2">
+                            <button 
+                                onClick={() => handlePageChange(currentPage - 1)}
+                                disabled={currentPage === 1}
+                                className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 border ${
+                                    currentPage === 1 
+                                    ? 'border-gray-100 text-gray-300 cursor-not-allowed' 
+                                    : 'border-gray-200 text-[#202921] hover:bg-[#202921] hover:text-white hover:border-[#202921] shadow-sm'
+                                }`}
+                            >
+                                <RiArrowLeftSLine size={24} />
+                            </button>
+
+                            <div className="flex items-center gap-2">
+                                {[...Array(totalPages)].map((_, idx) => {
+                                    const pageNum = idx + 1;
+                                    // Show first, last, and pages around current
+                                    if (
+                                        pageNum === 1 || 
+                                        pageNum === totalPages || 
+                                        (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
+                                    ) {
+                                        return (
+                                            <button
+                                                key={pageNum}
+                                                onClick={() => handlePageChange(pageNum)}
+                                                className={`w-12 h-12 rounded-2xl text-sm font-bold transition-all duration-300 border ${
+                                                    currentPage === pageNum
+                                                    ? 'bg-[#202921] text-white border-[#202921] shadow-lg scale-110'
+                                                    : 'bg-white text-gray-500 border-gray-200 hover:border-[#B59441] hover:text-[#B59441]'
+                                                }`}
+                                            >
+                                                {pageNum}
+                                            </button>
+                                        );
+                                    } else if (
+                                        pageNum === currentPage - 2 || 
+                                        pageNum === currentPage + 2
+                                    ) {
+                                        return <span key={pageNum} className="text-gray-300 px-1">...</span>;
+                                    }
+                                    return null;
+                                })}
+                            </div>
+
+                            <button 
+                                onClick={() => handlePageChange(currentPage + 1)}
+                                disabled={currentPage === totalPages}
+                                className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 border ${
+                                    currentPage === totalPages 
+                                    ? 'border-gray-100 text-gray-300 cursor-not-allowed' 
+                                    : 'border-gray-200 text-[#202921] hover:bg-[#202921] hover:text-white hover:border-[#202921] shadow-sm'
+                                }`}
+                            >
+                                <RiArrowRightSLine size={24} />
+                            </button>
+                        </div>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">
+                            Showing Page {currentPage} of {totalPages} — {filteredRooms.length} Total Rooms
+                        </p>
+                    </div>
+                )}
             </div>
             </section>
 

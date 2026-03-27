@@ -23,6 +23,7 @@ class ReservationService
                   ->orWhere('guest_name', 'like', $search)
                   ->orWhere('guest_phone', 'like', $search)
                   ->orWhere('guest_email', 'like', $search)
+                  ->orWhere('identity_number', 'like', $search)
                   ->orWhereHas('room', function($r) use ($search) {
                       $r->where('room_number', 'like', $search);
                   });
@@ -59,6 +60,10 @@ class ReservationService
     public function create(array $data): Reservation
     {
         return DB::transaction(function () use ($data) {
+            if ($data['booking_type'] === 'Booking' && empty($data['checked_in_at'])) {
+                $data['checked_in_at'] = now();
+            }
+
             $reservation = Reservation::create($data);
 
             // Update Room status based on booking type
@@ -86,6 +91,11 @@ class ReservationService
             elseif (isset($data['booking_type']) && $data['booking_type'] === 'Booking') {
                 if ($reservation->room->status === 'Reserved') {
                     Room::where('id', $reservation->room_id)->update(['status' => 'Occupied']);
+                    
+                    if (empty($reservation->checked_in_at)) {
+                        $reservation->checked_in_at = now();
+                        $reservation->save();
+                    }
                 }
             }
 

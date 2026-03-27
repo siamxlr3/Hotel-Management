@@ -11,8 +11,7 @@ import {
 } from 'react-icons/md';
 import { BsCheckCircleFill, BsXCircleFill, BsPersonFill, BsStack } from 'react-icons/bs';
 import { RiFileTextLine } from 'react-icons/ri';
-import { HiOutlineUserGroup, HiOutlineClock, HiOutlineShieldCheck, HiOutlineCalendar, HiOutlineCurrencyDollar, HiOutlineClipboardList } from 'react-icons/hi';
-
+import { HiOutlineCurrencyDollar, HiOutlineUserGroup } from 'react-icons/hi';
 import { 
   useGetShiftsQuery, useCreateShiftMutation, useUpdateShiftMutation, useDeleteShiftMutation,
   useGetRolesQuery, useCreateRoleMutation, useUpdateRoleMutation, useDeleteRoleMutation,
@@ -24,7 +23,11 @@ import {
 } from '../store/api/staffApi';
 import PayrollInvoicePDF from '../components/staff/PayrollInvoicePDF';
 import { useTranslate, formatPrice } from '../utils/localeHelper';
-import { homeThunks, contactThunks } from '../store/slices/cmsSlice';
+
+import { 
+  useGetHomeQuery,
+  useGetContactQuery
+} from '../store/api/cmsApi';
 
 /* ── Constants & Animations ── */
 const SLIDE = {
@@ -132,11 +135,19 @@ const inp = (err) =>
     err ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-[#A8D5A2] focus:ring-2 focus:ring-[#A8D5A2]/20'
   }`;
 
+const formatTime = (timeStr) => {
+  if (!timeStr) return '--:--';
+  const [h, m] = timeStr.split(':');
+  const hours = parseInt(h);
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  const hours12 = hours % 12 || 12;
+  return `${hours12}:${m} ${ampm}`;
+};
+
 /* ── Main Component ── */
 const StaffPage = () => {
   const [activeTab, setActiveTab] = useState('staff');
   const t = useTranslate();
-  const dispatch = useDispatch();
   const { language, currency } = useSelector(state => state.locale);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -171,22 +182,21 @@ const StaffPage = () => {
   const { data: payrollData, isFetching: payrollLoading } = useGetPayrollsQuery({ page, ...filters }, { skip: activeTab !== 'payroll' });
   const { data: payrollSummary } = useGetPayrollSummaryQuery({ ...filters }, { skip: activeTab !== 'payroll' });
   
-  // Dynamic Hotel Branding from CMS store
-  const cmsHome = useSelector(s => s.cms.home.data?.[0]);
-  const cmsContact = useSelector(s => s.cms.contact.data?.[0]);
+  // CMS Queries for Branding
+  const { data: cmsHomeData } = useGetHomeQuery();
+  const { data: cmsContactData } = useGetContactQuery();
   
-  const hotelInfo = useMemo(() => ({
-    hotel_name: cmsHome?.hotel_name || 'HOTEL MANAGEMENT',
-    logo: cmsHome?.logo_url,
-    address: cmsContact?.address || 'Hotel Address',
-    phone: cmsContact?.phone || 'N/A',
-    email: cmsContact?.email || 'N/A'
-  }), [cmsHome, cmsContact]);
-
-  useEffect(() => {
-    if (!cmsHome) dispatch(homeThunks.fetch());
-    if (!cmsContact) dispatch(contactThunks.fetch());
-  }, [cmsHome, cmsContact, dispatch]);
+  const hotelInfo = useMemo(() => {
+    const cmsHome = cmsHomeData?.[0] || cmsHomeData?.data?.[0];
+    const cmsContact = cmsContactData?.[0] || cmsContactData?.data?.[0];
+    return {
+      hotel_name: cmsHome?.hotel_name || 'HOTEL MANAGEMENT',
+      logo: cmsHome?.logo_url,
+      address: cmsContact?.address || 'Hotel Address',
+      phone: cmsContact?.phone || 'N/A',
+      email: cmsContact?.email || 'N/A'
+    };
+  }, [cmsHomeData, cmsContactData]);
 
   // Reference data for selects
   const { data: refRoles } = useGetRolesQuery({ status: 'Active' });
@@ -489,12 +499,12 @@ const StaffPage = () => {
                     {activeTab === 'attendance' && (
                       <>
                         <td className="px-5 py-4 font-bold text-gray-800">{item.staff?.name}</td>
-                        <td className="px-5 py-4 text-xs text-gray-500">{new Date(item.date).toLocaleDateString(language === 'BAN' ? 'bn-BD' : 'en-US')}</td>
+                         <td className="px-5 py-4 text-xs text-gray-500">{new Date(item.date).toLocaleDateString(language === 'BAN' ? 'bn-BD' : 'en-US')}</td>
                         <td className="px-5 py-4">
                            <div className="flex items-center gap-2 text-[11px] font-mono font-bold">
-                              <span className="text-emerald-600">{item.check_in_time || '--:--'}</span>
+                              <span className="text-emerald-600">{formatTime(item.check_in_time)}</span>
                               <span className="text-gray-300">→</span>
-                              <span className="text-red-600">{item.check_out_time || '--:--'}</span>
+                              <span className="text-red-600">{formatTime(item.check_out_time)}</span>
                            </div>
                         </td>
                       </>
@@ -529,7 +539,7 @@ const StaffPage = () => {
                       <>
                         <td className="px-5 py-4 font-bold text-gray-800">{item.name}</td>
                         <td className="px-5 py-4 text-xs text-gray-500">
-                           {activeTab === 'shifts' && `${item.start_time.slice(0,5)} - ${item.end_time.slice(0,5)}`}
+                           {activeTab === 'shifts' && `${formatTime(item.start_time)} - ${formatTime(item.end_time)}`}
                            {activeTab === 'leave-types' && `${item.days_allowed} ${t('Days Allowed')}`}
                            {activeTab === 'roles' && t('Staff Designation')}
                         </td>
@@ -654,6 +664,7 @@ function StaffForm({ activeTab, initial, onSave, onCancel, loading, refs }) {
             <Field label={t("Full Name *")}><input name="name" defaultValue={initial?.name} required className={inp()} /></Field>
             <Field label={t("Email *")}><input type="email" name="email" defaultValue={initial?.email} required className={inp()} /></Field>
             <Field label={t("Phone")}><input name="phone" defaultValue={initial?.phone} className={inp()} /></Field>
+            <Field label={t("Address")}><input name="address" defaultValue={initial?.address} className={inp()} placeholder={t("Enter Address")} /></Field>
             <Field label={t("NID Number *")}><input name="nid_number" defaultValue={initial?.nid_number} required className={inp()} /></Field>
             <Field label={t("Salary *")}><input type="number" step="0.01" name="salary" defaultValue={initial?.salary} required className={inp()} /></Field>
             <Field label={t("Role *")}>
@@ -702,7 +713,6 @@ function StaffForm({ activeTab, initial, onSave, onCancel, loading, refs }) {
                   </div>
                </Field>
             </div>
-            <div className="lg:col-span-3"><Field label={t("Address")}><textarea name="address" defaultValue={initial?.address} className={inp()} rows="2" /></Field></div>
           </>
         )}
 

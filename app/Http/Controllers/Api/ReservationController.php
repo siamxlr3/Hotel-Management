@@ -95,6 +95,27 @@ class ReservationController extends Controller
         }
     }
 
+    public function getActiveReservation($roomId): JsonResponse
+    {
+        try {
+            $reservation = Reservation::where('room_id', $roomId)
+                ->where('status', 'Unpaid')
+                ->latest()
+                ->first();
+
+            if (!$reservation) {
+                return response()->json(['success' => false, 'message' => 'No active reservation found'], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $reservation
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
     public function cancelReservation($id): JsonResponse
     {
         try {

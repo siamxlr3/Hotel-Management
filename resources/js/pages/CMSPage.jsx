@@ -16,9 +16,13 @@ import {
   FaFacebook, FaInstagram, FaTiktok,
 } from 'react-icons/fa';
 import {
-  homeThunks, aboutThunks, featureThunks,
-  offerThunks, galleryThunks, contactThunks,
-} from '../store/slices/cmsSlice';
+  useGetHomeQuery, useCreateHomeMutation, useUpdateHomeMutation, useDeleteHomeMutation,
+  useGetAboutQuery, useCreateAboutMutation, useUpdateAboutMutation, useDeleteAboutMutation,
+  useGetFeatureQuery, useCreateFeatureMutation, useUpdateFeatureMutation, useDeleteFeatureMutation,
+  useGetOfferQuery, useCreateOfferMutation, useUpdateOfferMutation, useDeleteOfferMutation,
+  useGetGalleryQuery, useCreateGalleryMutation, useUpdateGalleryMutation, useDeleteGalleryMutation,
+  useGetContactQuery, useCreateContactMutation, useUpdateContactMutation, useDeleteContactMutation,
+} from '../store/api/cmsApi';
 import { useTranslate, translate } from '../utils/localeHelper';
 
 /* ── Tabs config ── */
@@ -31,10 +35,7 @@ const TABS = (language) => [
   { key:'contact', label:translate('Contact', language),        icon:<RiPhoneLine size={15}/> },
 ];
 
-const THUNKS = {
-  home: homeThunks, about: aboutThunks, feature: featureThunks,
-  offer: offerThunks, gallery: galleryThunks, contact: contactThunks,
-};
+// No longer using THUNKS object as we use hooks directly
 
 const SLIDE = {
   initial:  { opacity:0, x:30 },
@@ -1034,89 +1035,112 @@ function ActionBtns({ onEdit, onDelete }) {
    MAIN PAGE
 ════════════════════════ */
 export default function CMSPage() {
+  const { language } = useSelector(state => state.locale);
   const t = useTranslate();
-  const dispatch = useDispatch();
-  const cms = useSelector(s => s.cms);
-  const { language } = useSelector(s => s.locale);
+  const [activeTab, setActiveTab] = useState('home');
+  const [page,      setPage]      = useState(1);
+  const [showForm,  setShowForm]  = useState(false);
+  const [editItem,  setEditItem]  = useState(null);
+  const [deleteItem,setDeleteItem]= useState(null);
 
-  const [tab,        setTab]       = useState('home');
-  const [showForm,   setShowForm]  = useState(false);
-  const [editItem,   setEditItem]  = useState(null);
-  const [deleteItem, setDeleteItem]= useState(null);
-  const [pages,      setPages]     = useState(
-    { home:1, about:1, feature:1, offer:1, gallery:1, contact:1 }
-  );
+  // Queries (with skip)
+  const { data: homeData, isFetching: hL, refetch: refetchHome } = useGetHomeQuery({ page }, { skip: activeTab !== 'home' });
+  const { data: aboutData, isFetching: aL, refetch: refetchAbout } = useGetAboutQuery({ page }, { skip: activeTab !== 'about' });
+  const { data: featData, isFetching: fL, refetch: refetchFeat } = useGetFeatureQuery({ page }, { skip: activeTab !== 'feature' });
+  const { data: offerData, isFetching: oL, refetch: refetchOffer } = useGetOfferQuery({ page }, { skip: activeTab !== 'offer' });
+  const { data: gallData, isFetching: gL, refetch: refetchGall } = useGetGalleryQuery({ page }, { skip: activeTab !== 'gallery' });
+  const { data: contData, isFetching: cL, refetch: refetchCont } = useGetContactQuery({ page }, { skip: activeTab !== 'contact' });
 
-  /* Load data for each tab */
-  useEffect(() => {
-    dispatch(homeThunks.fetch({ page: pages.home,    per_page:15 }));
-  }, [pages.home,    dispatch]);
-  useEffect(() => {
-    dispatch(aboutThunks.fetch({ page: pages.about,  per_page:15 }));
-  }, [pages.about,   dispatch]);
-  useEffect(() => {
-    dispatch(featureThunks.fetch({ page: pages.feature, per_page:15 }));
-  }, [pages.feature, dispatch]);
-  useEffect(() => {
-    dispatch(offerThunks.fetch({ page: pages.offer,  per_page:15 }));
-  }, [pages.offer,   dispatch]);
-  useEffect(() => {
-    dispatch(galleryThunks.fetch({ page: pages.gallery, per_page:15 }));
-  }, [pages.gallery, dispatch]);
-  useEffect(() => {
-    dispatch(contactThunks.fetch({ page: pages.contact, per_page:15 }));
-  }, [pages.contact, dispatch]);
+  // Mutations
+  const [createHome, { isLoading: hS }] = useCreateHomeMutation();
+  const [updateHome, { isLoading: hU }] = useUpdateHomeMutation();
+  const [deleteHome, { isLoading: hD }] = useDeleteHomeMutation();
+
+  const [createAbout, { isLoading: aS }] = useCreateAboutMutation();
+  const [updateAbout, { isLoading: aU }] = useUpdateAboutMutation();
+  const [deleteAbout, { isLoading: aD }] = useDeleteAboutMutation();
+
+  const [createFeat, { isLoading: fS }] = useCreateFeatureMutation();
+  const [updateFeat, { isLoading: fU }] = useUpdateFeatureMutation();
+  const [deleteFeat, { isLoading: fD }] = useDeleteFeatureMutation();
+
+  const [createOffer, { isLoading: oS }] = useCreateOfferMutation();
+  const [updateOffer, { isLoading: oU }] = useUpdateOfferMutation();
+  const [deleteOffer, { isLoading: oD }] = useDeleteOfferMutation();
+
+  const [createGall, { isLoading: gS }] = useCreateGalleryMutation();
+  const [updateGall, { isLoading: gU }] = useUpdateGalleryMutation();
+  const [deleteGall, { isLoading: gD }] = useDeleteGalleryMutation();
+
+  const [createCont, { isLoading: cS }] = useCreateContactMutation();
+  const [updateCont, { isLoading: cU }] = useUpdateContactMutation();
+  const [deleteCont, { isLoading: cD }] = useDeleteContactMutation();
+
+  const isLoading = hL || aL || fL || oL || gL || cL;
+  const isActionLoading = hS || hU || aS || aU || fS || fU || oS || oU || gS || gU || cS || cU;
+  const isDeleting = hD || aD || fD || oD || gD || cD;
+
+  const currentData = {
+    home: homeData, about: aboutData, feature: featData, 
+    offer: offerData, gallery: gallData, contact: contData
+  }[activeTab];
+
+  const refetchCurrent = {
+    home: refetchHome, about: refetchAbout, feature: refetchFeat,
+    offer: refetchOffer, gallery: refetchGall, contact: refetchCont
+  }[activeTab];
 
   const openCreate = () => { setEditItem(null); setShowForm(true); };
   const openEdit   = (item) => { setEditItem(item); setShowForm(true); };
   const closeForm  = () => { setShowForm(false); setEditItem(null); };
-  const setPage    = (t, p) => setPages(prev => ({...prev, [t]: p}));
 
-  const handleSave = async (payload) => {
-    const thunks = THUNKS[tab];
+  const handleSave = async (formData) => {
+    try {
+      const act = editItem ? 'update' : 'create';
+      const map = {
+        home:    { create: createHome,  update: updateHome },
+        about:   { create: createAbout, update: updateAbout },
+        feature: { create: createFeat,  update: updateFeat },
+        offer:   { create: createOffer, update: updateOffer },
+        gallery: { create: createGall,  update: updateGall },
+        contact: { create: createCont,  update: updateCont },
+      };
 
-    /*
-     * payload may be a FormData (from image forms)
-     * or a plain object (from Feature, Contact forms).
-     * The cmsSlice update thunk already uses POST + _method:PUT,
-     * so FormData passes through correctly.
-     */
-    const isFormData = payload instanceof FormData;
-    const id = isFormData ? payload.get('id') : payload.id;
-
-    const action = id
-      ? thunks.update(isFormData ? payload : payload)
-      : thunks.create(payload);
-
-    const res = await dispatch(action);
-    if (res.meta.requestStatus === 'fulfilled') {
-      toast.success(id ? t('Updated successfully!') : t('Created successfully!'));
+      const mutation = map[activeTab][act];
+      await mutation(formData).unwrap();
+      toast.success(t('Changes saved!'));
       closeForm();
-    } else {
-      toast.error(res.payload || t('Something went wrong'));
+    } catch (err) {
+      toast.error(err?.data?.message || t('Failed to save changes'));
     }
   };
 
   const handleDelete = async () => {
     if (!deleteItem) return;
-    const activeTab = tab;                         // capture before async
-    const id = Number(deleteItem.id);
-    const res = await dispatch(THUNKS[activeTab].remove(id));
-    if (res.meta.requestStatus === 'fulfilled') {
+    try {
+      const map = {
+        home:    deleteHome,
+        about:   deleteAbout,
+        feature: deleteFeat,
+        offer:   deleteOffer,
+        gallery: deleteGall,
+        contact: deleteCont,
+      };
+      await map[activeTab](deleteItem.id).unwrap();
       toast.success(t('Deleted permanently!'));
-    } else {
-      toast.error(res.payload || t('Cannot delete'));
+      setDeleteItem(null);
+    } catch (err) {
+      toast.error(err?.data?.message || t('Delete failed'));
     }
-    setDeleteItem(null);
   };
 
   const FORMS = {
-    home:    <HomeForm    initial={editItem} onSave={handleSave} onCancel={closeForm} loading={cms.actionLoading}/>,
-    about:   <AboutForm   initial={editItem} onSave={handleSave} onCancel={closeForm} loading={cms.actionLoading}/>,
-    feature: <FeatureForm initial={editItem} onSave={handleSave} onCancel={closeForm} loading={cms.actionLoading}/>,
-    offer:   <OfferForm   initial={editItem} onSave={handleSave} onCancel={closeForm} loading={cms.actionLoading}/>,
-    gallery: <GalleryForm initial={editItem} onSave={handleSave} onCancel={closeForm} loading={cms.actionLoading}/>,
-    contact: <ContactForm initial={editItem} onSave={handleSave} onCancel={closeForm} loading={cms.actionLoading}/>,
+    home:    <HomeForm    initial={editItem} onSave={handleSave} onCancel={closeForm} loading={isActionLoading}/>,
+    about:   <AboutForm   initial={editItem} onSave={handleSave} onCancel={closeForm} loading={isActionLoading}/>,
+    feature: <FeatureForm initial={editItem} onSave={handleSave} onCancel={closeForm} loading={isActionLoading}/>,
+    offer:   <OfferForm   initial={editItem} onSave={handleSave} onCancel={closeForm} loading={isActionLoading}/>,
+    gallery: <GalleryForm initial={editItem} onSave={handleSave} onCancel={closeForm} loading={isActionLoading}/>,
+    contact: <ContactForm initial={editItem} onSave={handleSave} onCancel={closeForm} loading={isActionLoading}/>,
   };
 
   return (
@@ -1141,8 +1165,8 @@ export default function CMSPage() {
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90"
             style={{background:'#2D3A2E',color:'#fff'}}>
             <MdAdd size={18}/> {language === 'BAN' 
-              ? `${TABS(language).find(t=>t.key===tab)?.label || ''} ${t('Add')}` 
-              : `${t('Add')} ${TABS(language).find(t=>t.key===tab)?.label || ''}`}
+              ? `${TABS(language).find(t=>t.key===activeTab)?.label || ''} ${t('Add')}` 
+              : `${t('Add')} ${TABS(language).find(t=>t.key===activeTab)?.label || ''}`}
           </button>
           <Link to="/home"
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all border border-gray-200 text-gray-700 hover:bg-gray-50">
@@ -1155,9 +1179,9 @@ export default function CMSPage() {
       <div className="flex gap-1.5 bg-gray-100 p-1 rounded-xl w-fit flex-wrap">
         {TABS(language).map(t => (
           <button key={t.key}
-            onClick={() => { setTab(t.key); setShowForm(false); setEditItem(null); }}
+            onClick={() => { setActiveTab(t.key); setShowForm(false); setEditItem(null); }}
             className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-medium transition-all ${
-              tab===t.key ? 'bg-white shadow-sm text-gray-800' : 'text-gray-500 hover:text-gray-700'
+              activeTab===t.key ? 'bg-white shadow-sm text-gray-800' : 'text-gray-500 hover:text-gray-700'
             }`}>
             {t.icon} {t.label}
           </button>
@@ -1168,7 +1192,7 @@ export default function CMSPage() {
       <AnimatePresence mode="wait">
 
         {/* ══ HOME ══ */}
-        {tab==='home' && (
+        {activeTab==='home' && (
           <motion.div key="home" {...SLIDE} className="flex flex-col gap-4">
             <AnimatePresence>
               {showForm && (
@@ -1177,15 +1201,15 @@ export default function CMSPage() {
                 </motion.div>
               )}
             </AnimatePresence>
-            <TableWrapper title={t('Home Sections')} total={cms.home.meta.total}
-              onRefresh={()=>dispatch(homeThunks.fetch({page:pages.home,per_page:15}))}
-              loading={cms.home.status==='loading'}
+            <TableWrapper title={t('Home Sections')} total={homeData?.meta?.total || 0}
+              onRefresh={() => refetchHome()}
+              loading={hL}
               headers={[t('Hotel Name'), t('Logo'), t('Hero Images'), t('Actions')]}
-              meta={cms.home.meta} onPage={p=>setPage('home',p)}>
-              {cms.home.status==='loading' ? <Skeleton cols={4}/> :
-               cms.home.data.length===0
+              meta={homeData?.meta} onPage={setPage}>
+              {hL ? <Skeleton cols={4}/> :
+               homeData?.data?.length===0
                  ? <tr><td colSpan={4} className="px-5 py-14 text-center text-gray-400 text-sm">{t('No entries found.')}</td></tr>
-                 : cms.home.data.map((item,i) => (
+                 : homeData.data.map((item,i) => (
                     <motion.tr key={item.id} initial={{opacity:0,y:5}} animate={{opacity:1,y:0}} transition={{delay:i*0.03}}
                       className="border-b border-gray-50 hover:bg-gray-50/60 transition-colors">
                       <td className="px-5 py-3.5 font-semibold text-gray-800">{item.hotel_name}</td>
@@ -1202,7 +1226,7 @@ export default function CMSPage() {
         )}
 
         {/* ══ ABOUT ══ */}
-        {tab==='about' && (
+        {activeTab==='about' && (
           <motion.div key="about" {...SLIDE} className="flex flex-col gap-4">
             <AnimatePresence>
               {showForm && (
@@ -1211,15 +1235,15 @@ export default function CMSPage() {
                 </motion.div>
               )}
             </AnimatePresence>
-            <TableWrapper title={t('About Sections')} total={cms.about.meta.total}
-              onRefresh={()=>dispatch(aboutThunks.fetch({page:pages.about,per_page:15}))}
-              loading={cms.about.status==='loading'}
+            <TableWrapper title={t('About Sections')} total={aboutData?.meta?.total || 0}
+              onRefresh={() => refetchAbout()}
+              loading={aL}
               headers={[t('Description'), t('Image'), t('Actions')]}
-              meta={cms.about.meta} onPage={p=>setPage('about',p)}>
-              {cms.about.status==='loading' ? <Skeleton cols={3}/> :
-               cms.about.data.length===0
+              meta={aboutData?.meta} onPage={setPage}>
+              {aL ? <Skeleton cols={3}/> :
+               aboutData?.data?.length===0
                  ? <tr><td colSpan={3} className="px-5 py-14 text-center text-gray-400 text-sm">{t('No entries found.')}</td></tr>
-                 : cms.about.data.map((item,i) => (
+                 : aboutData.data.map((item,i) => (
                     <motion.tr key={item.id} initial={{opacity:0,y:5}} animate={{opacity:1,y:0}} transition={{delay:i*0.03}}
                       className="border-b border-gray-50 hover:bg-gray-50/60 transition-colors">
                       <td className="px-5 py-3.5 text-gray-600 max-w-xs">
@@ -1237,7 +1261,7 @@ export default function CMSPage() {
         )}
 
         {/* ══ FEATURES ══ */}
-        {tab==='feature' && (
+        {activeTab==='feature' && (
           <motion.div key="feature" {...SLIDE} className="flex flex-col gap-4">
             <AnimatePresence>
               {showForm && (
@@ -1246,15 +1270,15 @@ export default function CMSPage() {
                 </motion.div>
               )}
             </AnimatePresence>
-            <TableWrapper title={t('Features')} total={cms.feature.meta.total}
-              onRefresh={()=>dispatch(featureThunks.fetch({page:pages.feature,per_page:15}))}
-              loading={cms.feature.status==='loading'}
+            <TableWrapper title={t('Features')} total={featData?.meta?.total || 0}
+              onRefresh={() => refetchFeat()}
+              loading={fL}
               headers={[t('Title'), t('Description'), t('Actions')]}
-              meta={cms.feature.meta} onPage={p=>setPage('feature',p)}>
-              {cms.feature.status==='loading' ? <Skeleton cols={3}/> :
-               cms.feature.data.length===0
+              meta={featData?.meta} onPage={setPage}>
+              {fL ? <Skeleton cols={3}/> :
+               featData?.data?.length===0
                  ? <tr><td colSpan={3} className="px-5 py-14 text-center text-gray-400 text-sm">{t('No entries found.')}</td></tr>
-                 : cms.feature.data.map((item,i) => (
+                 : featData.data.map((item,i) => (
                     <motion.tr key={item.id} initial={{opacity:0,y:5}} animate={{opacity:1,y:0}} transition={{delay:i*0.03}}
                       className="border-b border-gray-50 hover:bg-gray-50/60 transition-colors">
                       <td className="px-5 py-3.5 font-semibold text-gray-800 whitespace-nowrap">{item.title}</td>
@@ -1272,7 +1296,7 @@ export default function CMSPage() {
         )}
 
         {/* ══ OFFERS ══ */}
-        {tab==='offer' && (
+        {activeTab==='offer' && (
           <motion.div key="offer" {...SLIDE} className="flex flex-col gap-4">
             <AnimatePresence>
               {showForm && (
@@ -1281,15 +1305,15 @@ export default function CMSPage() {
                 </motion.div>
               )}
             </AnimatePresence>
-            <TableWrapper title={t('Offers')} total={cms.offer.meta.total}
-              onRefresh={()=>dispatch(offerThunks.fetch({page:pages.offer,per_page:15}))}
-              loading={cms.offer.status==='loading'}
+            <TableWrapper title={t('Offers')} total={offerData?.meta?.total || 0}
+              onRefresh={() => refetchOffer()}
+              loading={oL}
               headers={[t('Title'), t('Discount'), t('Image'), t('Validity'), t('Actions')]}
-              meta={cms.offer.meta} onPage={p=>setPage('offer',p)}>
-              {cms.offer.status==='loading' ? <Skeleton cols={5}/> :
-               cms.offer.data.length===0
+              meta={offerData?.meta} onPage={setPage}>
+              {oL ? <Skeleton cols={5}/> :
+               offerData?.data?.length===0
                  ? <tr><td colSpan={5} className="px-5 py-14 text-center text-gray-400 text-sm">{t('No entries found.')}</td></tr>
-                 : cms.offer.data.map((item,i) => (
+                 : offerData.data.map((item,i) => (
                     <motion.tr key={item.id} initial={{opacity:0,y:5}} animate={{opacity:1,y:0}} transition={{delay:i*0.03}}
                       className="border-b border-gray-50 hover:bg-gray-50/60 transition-colors">
                       <td className="px-5 py-3.5 font-semibold text-gray-800">{item.title}</td>
@@ -1316,7 +1340,7 @@ export default function CMSPage() {
         )}
 
         {/* ══ GALLERY ══ */}
-        {tab==='gallery' && (
+        {activeTab==='gallery' && (
           <motion.div key="gallery" {...SLIDE} className="flex flex-col gap-4">
             <AnimatePresence>
               {showForm && (
@@ -1325,15 +1349,15 @@ export default function CMSPage() {
                 </motion.div>
               )}
             </AnimatePresence>
-            <TableWrapper title={t('Gallery Groups')} total={cms.gallery.meta.total}
-              onRefresh={()=>dispatch(galleryThunks.fetch({page:pages.gallery,per_page:15}))}
-              loading={cms.gallery.status==='loading'}
+            <TableWrapper title={t('Gallery Groups')} total={gallData?.meta?.total || 0}
+              onRefresh={() => refetchGall()}
+              loading={gL}
               headers={[t('Images'), t('Count'), t('Created'), t('Actions')]}
-              meta={cms.gallery.meta} onPage={p=>setPage('gallery',p)}>
-              {cms.gallery.status==='loading' ? <Skeleton cols={4}/> :
-               cms.gallery.data.length===0
+              meta={gallData?.meta} onPage={setPage}>
+              {gL ? <Skeleton cols={4}/> :
+               gallData?.data?.length===0
                  ? <tr><td colSpan={4} className="px-5 py-14 text-center text-gray-400 text-sm">{t('No entries found.')}</td></tr>
-                 : cms.gallery.data.map((item,i) => (
+                 : gallData.data.map((item,i) => (
                     <motion.tr key={item.id} initial={{opacity:0,y:5}} animate={{opacity:1,y:0}} transition={{delay:i*0.03}}
                       className="border-b border-gray-50 hover:bg-gray-50/60 transition-colors">
                       <td className="px-5 py-3.5"><ImgStrip urls={item.gallery_urls||[]}/></td>
@@ -1356,7 +1380,7 @@ export default function CMSPage() {
         )}
 
         {/* ══ CONTACT ══ */}
-        {tab==='contact' && (
+        {activeTab==='contact' && (
           <motion.div key="contact" {...SLIDE} className="flex flex-col gap-4">
             <AnimatePresence>
               {showForm && (
@@ -1365,15 +1389,15 @@ export default function CMSPage() {
                 </motion.div>
               )}
             </AnimatePresence>
-            <TableWrapper title={t('Contact Info')} total={cms.contact.meta.total}
-              onRefresh={()=>dispatch(contactThunks.fetch({page:pages.contact,per_page:15}))}
-              loading={cms.contact.status==='loading'}
+            <TableWrapper title={t('Contact Info')} total={contData?.meta?.total || 0}
+              onRefresh={() => refetchCont()}
+              loading={cL}
               headers={[t('Phone'), t('Email'), t('Address'), t('Social'), t('Map'), t('Actions')]}
-              meta={cms.contact.meta} onPage={p=>setPage('contact',p)}>
-              {cms.contact.status==='loading' ? <Skeleton cols={6}/> :
-               cms.contact.data.length===0
+              meta={contData?.meta} onPage={setPage}>
+              {cL ? <Skeleton cols={6}/> :
+               contData?.data?.length===0
                  ? <tr><td colSpan={6} className="px-5 py-14 text-center text-gray-400 text-sm">{t('No entries found.')}</td></tr>
-                 : cms.contact.data.map((item,i) => (
+                 : contData.data.map((item,i) => (
                     <motion.tr key={item.id} initial={{opacity:0,y:5}} animate={{opacity:1,y:0}} transition={{delay:i*0.03}}
                       className="border-b border-gray-50 hover:bg-gray-50/60 transition-colors">
                       <td className="px-5 py-3.5 text-gray-700 text-xs whitespace-nowrap">{item.phone||'—'}</td>
@@ -1410,11 +1434,11 @@ export default function CMSPage() {
       <AnimatePresence>
         {deleteItem && (
           <DeleteModal
-            label={TABS(language).find(t=>t.key===tab)?.label}
+            label={TABS(language).find(t=>t.key===activeTab)?.label}
             name={deleteItem.hotel_name || deleteItem.title || deleteItem.phone || `${t('Entry')} #${deleteItem.id}`}
             onConfirm={handleDelete}
             onCancel={() => setDeleteItem(null)}
-            loading={cms.actionLoading}
+            loading={isDeleting}
           />
         )}
       </AnimatePresence>

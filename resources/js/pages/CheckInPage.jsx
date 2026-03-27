@@ -4,9 +4,9 @@ import { MdSearch, MdPrint, MdCheckCircle, MdCalendarToday } from 'react-icons/m
 import toast, { Toaster } from 'react-hot-toast';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import ReservationInvoicePDF from '../components/reservation/ReservationInvoicePDF';
-import { fetchReservations } from '../store/slices/reservationSlice';
+import { useGetReservationsQuery } from '../store/api/reservationApi';
+import { useGetHomeQuery, useGetContactQuery } from '../store/api/cmsApi';
 import { translate, formatPrice, translateDigits } from '../utils/localeHelper';
-import { homeThunks, contactThunks } from '../store/slices/cmsSlice';
 
 function useDebounce(value, delay) {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -34,13 +34,7 @@ const SkeletonRow = () => (
 );
 
 export default function CheckInPage() {
-  const dispatch = useDispatch();
   const { language, currency } = useSelector(state => state.locale);
-  const { reservations, loadingReservations, reservationMeta } = useSelector(state => state.reservation);
-  
-  // Dynamic Hotel Branding from CMS store
-  const cmsHome = useSelector(s => s.cms.home.data?.[0]);
-  const cmsContact = useSelector(s => s.cms.contact.data?.[0]);
   
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearch = useDebounce(searchTerm, 500);
@@ -49,31 +43,32 @@ export default function CheckInPage() {
   const [endDate, setEndDate] = useState('');
   const [page, setPage] = useState(1);
 
-  useEffect(() => {
-    dispatch(fetchReservations({
-      search: debouncedSearch,
-      start_date: startDate,
-      end_date: endDate,
-      page
-    })).catch(() => toast.error("Failed to load reservations"));
-  }, [debouncedSearch, startDate, endDate, page, dispatch]);
+  // RTK Query: Reservations
+  const { data: reservationData, isFetching: loadingReservations } = useGetReservationsQuery({
+    search: debouncedSearch,
+    start_date: startDate,
+    end_date: endDate,
+    page
+  });
 
-  useEffect(() => {
-    setPage(1);
-  }, [debouncedSearch, startDate, endDate]);
+  const reservations = reservationData?.data || [];
+  const reservationMeta = reservationData?.meta;
+  
+  // RTK Query: CMS Branding
+  const { data: cmsHomeData } = useGetHomeQuery();
+  const { data: cmsContactData } = useGetContactQuery();
 
-  const hotelInfo = useMemo(() => ({
-    hotel_name: cmsHome?.hotel_name || 'HOTEL MANAGEMENT',
-    logo: cmsHome?.logo_url,
-    address: cmsContact?.address || 'Hotel Address',
-    phone: cmsContact?.phone || 'N/A',
-    email: cmsContact?.email || 'N/A'
-  }), [cmsHome, cmsContact]);
-
-  useEffect(() => {
-    if (!cmsHome) dispatch(homeThunks.fetch());
-    if (!cmsContact) dispatch(contactThunks.fetch());
-  }, [cmsHome, cmsContact, dispatch]);
+  const hotelInfo = useMemo(() => {
+    const home = cmsHomeData?.[0] || cmsHomeData?.data?.[0];
+    const contact = cmsContactData?.[0] || cmsContactData?.data?.[0];
+    return {
+      hotel_name: home?.hotel_name || 'HOTEL MANAGEMENT',
+      logo: home?.logo_url,
+      address: contact?.address || 'Hotel Address',
+      phone: contact?.phone || 'N/A',
+      email: contact?.email || 'N/A'
+    };
+  }, [cmsHomeData, cmsContactData]);
 
   return (
     <div className="flex h-full w-full bg-[#f8f9fc] flex-col overflow-hidden">

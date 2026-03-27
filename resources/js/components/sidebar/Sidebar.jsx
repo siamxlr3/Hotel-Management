@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import SidebarItem from './SidebarItem';
-import { homeThunks } from '../../store/slices/cmsSlice';
+import { useGetHomeQuery } from '../../store/api/cmsApi';
 
 /* ── Inline SVG icons — 18x18, stroke="currentColor" ── */
 const SVG = {
@@ -65,13 +65,8 @@ const navItems = [
 ];
 
 export default function Sidebar({ isOpen }) {
-  const dispatch = useDispatch();
-  const { data: homeList } = useSelector(s => s.cms.home);
-  const hotel = homeList?.[0] || {};
-
-  useEffect(() => {
-    dispatch(homeThunks.fetch({ per_page: 1 }));
-  }, [dispatch]);
+  const { data: homeData } = useGetHomeQuery();
+  const hotel = homeData?.[0] || homeData?.data?.[0] || {};
 
   return (
     <div style={{

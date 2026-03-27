@@ -49,7 +49,7 @@ const styles = StyleSheet.create({
 
 const ReservationInvoicePDF = ({ reservation, hotelInfo }) => {
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount || 0);
+    return new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount || 0);
   };
 
   const checkIn = new Date(reservation.check_in);
@@ -83,7 +83,7 @@ const ReservationInvoicePDF = ({ reservation, hotelInfo }) => {
             <Text style={styles.label}>Name:</Text>
             <Text style={styles.value}>{reservation.guest_name}</Text>
             <Text style={styles.label}>Room:</Text>
-            <Text style={styles.value}>{reservation.room?.room_number}</Text>
+            <Text style={styles.value}>{reservation.room?.room_number || 'N/A'}</Text>
           </View>
           <View style={styles.row}>
             <Text style={styles.label}>Phone:</Text>
@@ -114,7 +114,7 @@ const ReservationInvoicePDF = ({ reservation, hotelInfo }) => {
               <Text style={styles.col3}>Amount</Text>
             </View>
             <View style={styles.tableRow}>
-              <Text style={styles.col1}>Accommodation ({nights} nights @ {formatCurrency(reservation.room?.base_price)})</Text>
+              <Text style={styles.col1}>Accommodation (Room {reservation.room?.room_number} - {nights} nights {formatCurrency(reservation.room?.base_price)})</Text>
               <Text style={styles.col3}>{formatCurrency(grossSubtotal)}</Text>
             </View>
             {discountApplied > 0 && (

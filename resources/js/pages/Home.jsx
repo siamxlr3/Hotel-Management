@@ -9,45 +9,49 @@ import {
   RiGiftLine, RiGalleryLine, RiPhoneLine, 
   RiFacebookCircleLine, RiInstagramLine, RiTwitterLine, RiTiktokLine,
   RiArrowRightLine, RiPlayFill, RiArrowLeftSLine, RiArrowRightSLine,
-  RiDashboardLine, RiArrowRightUpLine, RiCalendarEventLine
+  RiDashboardLine, RiArrowRightUpLine, RiCalendarEventLine,
+  RiMenuLine, RiCloseLine
 } from 'react-icons/ri';
 import { MdOutlineLocationOn, MdMailOutline, MdPhoneInTalk, MdStar } from 'react-icons/md';
 import { Link } from 'react-router-dom';
-import { homeThunks, featureThunks, aboutThunks, offerThunks, galleryThunks, contactThunks } from '../store/slices/cmsSlice';
-import { fetchRooms, fetchAllCategories } from '../store/slices/roomSlice';
+import { 
+  useGetHomeQuery, useGetFeatureQuery, useGetAboutQuery, 
+  useGetOfferQuery, useGetGalleryQuery, useGetContactQuery 
+} from '../store/api/cmsApi';
+import { useGetRoomsQuery, useGetAllCategoriesQuery } from '../store/api/roomApi';
 
 // Placeholder for translation function
 const t = (val) => val;
 
 const Home = () => {
-    const dispatch = useDispatch();
-    const sliderRef = useRef(null);
+    // RTK Query hooks
+    const { data: rawHomeData, isLoading: homeLoading } = useGetHomeQuery();
+    const { data: rawFeatureData, isLoading: featureLoading } = useGetFeatureQuery();
+    const { data: rawAboutData, isLoading: aboutLoading } = useGetAboutQuery();
+    const { data: rawOfferData, isLoading: offerLoading } = useGetOfferQuery();
+    const { data: rawGalleryData, isLoading: galleryLoading } = useGetGalleryQuery();
+    const { data: rawContactData, isLoading: contactLoading } = useGetContactQuery();
+    const { data: roomsData, isLoading: roomsLoading } = useGetRoomsQuery({ per_page: 100 });
+    const { data: categoriesData } = useGetAllCategoriesQuery();
 
-    const { data: homeData, status: homeStatus } = useSelector(state => state.cms.home);
-    const { data: featureData, status: featureStatus } = useSelector(state => state.cms.feature);
-    const { data: aboutData, status: aboutStatus } = useSelector(state => state.cms.about);
-    const { data: offerData, status: offerStatus } = useSelector(state => state.cms.offer);
-    const { data: galleryData, status: galleryStatus } = useSelector(state => state.cms.gallery);
-    const { data: contactData, status: contactStatus } = useSelector(state => state.cms.contact);
-    const { rooms, allCategories, roomStatus } = useSelector(state => state.room);
+    const homeData = rawHomeData?.data || rawHomeData;
+    const featureData = rawFeatureData?.data || rawFeatureData;
+    const aboutData = rawAboutData?.data || rawAboutData;
+    const offerData = rawOfferData?.data || rawOfferData;
+    const galleryData = rawGalleryData?.data || rawGalleryData;
+    const contactData = rawContactData?.data || rawContactData;
+
+    const rooms = roomsData?.data || [];
+    const allCategories = categoriesData || [];
     
     const [isScrolled, setIsScrolled] = useState(false);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [filterStatus, setFilterStatus] = useState('All');
     const [filterCategory, setFilterCategory] = useState('All');
     const [filterGuests, setFilterGuests] = useState('Any');
     const [currentPage, setCurrentPage] = useState(1);
-    const roomsPerPage = 10;
-
-    useEffect(() => {
-        dispatch(homeThunks.fetch());
-        dispatch(featureThunks.fetch());
-        dispatch(aboutThunks.fetch());
-        dispatch(offerThunks.fetch());
-        dispatch(galleryThunks.fetch());
-        dispatch(contactThunks.fetch());
-        dispatch(fetchRooms({ per_page: 50 })); // Get all for filtering
-        dispatch(fetchAllCategories());
-    }, [dispatch]);
+    const roomsPerPage = 12; // Increased for better layout
+    const sliderRef = useRef(null);
 
     useEffect(() => {
         const handleScroll = () => {
@@ -113,11 +117,78 @@ const Home = () => {
 
     return (
         <div className="bg-white min-h-screen font-sans selection:bg-[#2D3A2E] selection:text-white">
+
+            {/* Mobile Sidebar Overlay */}
+            <AnimatePresence>
+                {isSidebarOpen && (
+                    <motion.div
+                        key="overlay"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.25 }}
+                        onClick={() => setIsSidebarOpen(false)}
+                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60]"
+                    />
+                )}
+            </AnimatePresence>
+
+            {/* Mobile Sidebar Drawer */}
+            <AnimatePresence>
+                {isSidebarOpen && (
+                    <motion.aside
+                        key="sidebar"
+                        initial={{ x: '100%' }}
+                        animate={{ x: 0 }}
+                        exit={{ x: '100%' }}
+                        transition={{ type: 'spring', stiffness: 320, damping: 32 }}
+                        className="fixed top-0 right-0 h-full w-72 bg-[#1E2A1F] z-[70] flex flex-col shadow-2xl"
+                    >
+                        {/* Sidebar Header */}
+                        <div className="flex items-center justify-between px-6 py-6 border-b border-white/10">
+                            <span className="text-white font-bold text-lg tracking-tight">
+                                {homeData?.[0]?.hotel_name || 'Navigation'}
+                            </span>
+                            <button
+                                onClick={() => setIsSidebarOpen(false)}
+                                className="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
+                                aria-label="Close menu"
+                            >
+                                <RiCloseLine size={22} />
+                            </button>
+                        </div>
+
+                        {/* Sidebar Nav Links */}
+                        <nav className="flex flex-col gap-1 px-4 py-6 flex-1">
+                            {navLinks.map((link, i) => (
+                                <motion.a
+                                    key={link.name}
+                                    href={link.href}
+                                    onClick={() => setIsSidebarOpen(false)}
+                                    initial={{ opacity: 0, x: 20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: i * 0.06, duration: 0.25 }}
+                                    className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-white/80 hover:text-white hover:bg-white/10 transition-all font-medium text-sm tracking-wide"
+                                >
+                                    {link.name}
+                                </motion.a>
+                            ))}
+                        </nav>
+
+                        {/* Sidebar Footer */}
+                        <div className="px-6 pb-8 border-t border-white/10 pt-6">
+                            <p className="text-white/30 text-xs tracking-widest uppercase">© 2026 {homeData?.[0]?.hotel_name || 'Hotel'}</p>
+                        </div>
+                    </motion.aside>
+                )}
+            </AnimatePresence>
+
             {/* Navbar */}
-            <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 px-6 py-4 ${isScrolled ? 'bg-white/90 backdrop-blur-xl shadow-sm border-b border-gray-100' : 'bg-transparent'}`}>
+            <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 px-4 sm:px-6 py-3 sm:py-4 ${isScrolled ? 'bg-white/90 backdrop-blur-xl shadow-sm border-b border-gray-100' : 'bg-transparent'}`}>
                 <div className="max-w-7xl mx-auto flex items-center justify-between">
+                    {/* Logo + Name */}
                     <div className="flex items-center gap-2">
-                        {homeStatus === 'loading' ? (
+                        {homeLoading ? (
                             <div className="h-6 w-32 bg-gray-200 animate-pulse rounded" />
                         ) : (
                             <>
@@ -128,14 +199,15 @@ const Home = () => {
                                         alt="Logo" 
                                     />
                                 )}
-                                <span className={`text-xl font-bold tracking-tight transition-colors duration-500 ${isScrolled ? 'text-[#2D3A2E]' : 'text-white'}`}>
+                                <span className={`text-lg sm:text-xl font-bold tracking-tight transition-colors duration-500 ${isScrolled ? 'text-[#2D3A2E]' : 'text-white'}`}>
                                     {homeData?.[0]?.hotel_name || 'The Elite Concierge'}
                                 </span>
                             </>
                         )}
                     </div>
 
-                    <div className="hidden md:flex items-center gap-10">
+                    {/* Desktop Nav Links */}
+                    <div className="hidden lg:flex items-center gap-8 xl:gap-10">
                         {navLinks.map((link) => (
                             <a 
                                 key={link.name} 
@@ -147,31 +219,40 @@ const Home = () => {
                         ))}
                     </div>
 
-                    <div className="flex items-center gap-4">
-                        {/* Space for buttons if needed later */}
-                    </div>
+                    {/* Hamburger (Mobile/Tablet) */}
+                    <button
+                        onClick={() => setIsSidebarOpen(true)}
+                        className={`lg:hidden w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
+                            isScrolled
+                                ? 'bg-gray-100 hover:bg-gray-200 text-[#2D3A2E]'
+                                : 'bg-white/10 hover:bg-white/20 text-white'
+                        }`}
+                        aria-label="Open menu"
+                    >
+                        <RiMenuLine size={22} />
+                    </button>
                 </div>
             </nav>
 
             {/* Hero Section */}
-            {homeStatus === 'loading' ? (
-                <div className="h-screen bg-[#2D3A2E] flex items-center justify-center">
-                    <div className="w-12 h-12 border-4 border-[#B59441]/20 border-t-[#B59441] rounded-full animate-spin" />
-                </div>
-            ) : homeData && homeData[0]?.hero_urls?.length > 0 ? (
-                <section id="home" className="relative h-screen overflow-hidden bg-[#2D3A2E]">
-                    <Slider
-                        dots={true}
-                        infinite={true}
-                        speed={1000}
-                        fade={true}
-                        autoplay={true}
-                        autoplaySpeed={5000}
-                        pauseOnHover={false}
-                        arrows={false}
-                        className="h-full hero-slider"
-                    >
-                        {homeData[0].hero_urls.map((url, i) => (
+            {homeLoading ? (
+                 <div className="h-screen bg-[#2D3A2E] flex items-center justify-center">
+                     <div className="w-12 h-12 border-4 border-[#B59441]/20 border-t-[#B59441] rounded-full animate-spin" />
+                 </div>
+             ) : homeData && (homeData?.[0] || homeData?.data?.[0])?.hero_urls?.length > 0 ? (
+                 <section id="home" className="relative h-screen overflow-hidden bg-[#2D3A2E]">
+                     <Slider
+                         dots={true}
+                         infinite={true}
+                         speed={1000}
+                         fade={true}
+                         autoplay={true}
+                         autoplaySpeed={5000}
+                         pauseOnHover={false}
+                         arrows={false}
+                         className="h-full hero-slider"
+                     >
+                         {(homeData?.[0] || homeData?.data?.[0]).hero_urls.map((url, i) => (
                             <div key={i} className="relative h-screen outline-none">
                                 <div className="absolute inset-0">
                                     <img 
@@ -189,7 +270,7 @@ const Home = () => {
                                             transition={{ duration: 1 }}
                                         >
                                             <p className="text-[#B59441] font-bold uppercase tracking-[0.5em] text-[10px] md:text-xs mb-6">Experience the Extraordinary</p>
-                                            <h1 className="text-5xl md:text-8xl font-bold text-white mb-8 leading-[1.1]">The Art of <br/>Pure Hospitality</h1>
+                                            <h1 className="text-4xl sm:text-6xl md:text-8xl font-bold text-white mb-6 sm:mb-8 leading-[1.1]">The Art of <br/>Pure Hospitality</h1>
                                             <p className="text-lg md:text-xl text-white/90 font-light max-w-2xl mx-auto mb-12 leading-relaxed">
                                                 A curated collection of exceptional stays where architecture meets cultural legacy.
                                             </p>
@@ -294,7 +375,7 @@ const Home = () => {
             )}
 
             {/* Our Rooms */}
-            <section id="features" className="py-24 w-full" style={{ background: 'oklch(96.7% 0.003 264.542)' }}>
+            <section id="features" className="py-16 sm:py-24 w-full" style={{ background: 'oklch(96.7% 0.003 264.542)' }}>
             <div className="max-w-7xl mx-auto px-6">
                 <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-8">
                     <div>
@@ -305,7 +386,7 @@ const Home = () => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-                    {roomStatus === 'loading' ? (
+                    {roomsLoading ? (
                          [...Array(3)].map((_, i) => (
                             <div key={i} className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-gray-100 animate-pulse">
                                 <div className="aspect-[4/3] bg-gray-100 rounded-[2rem] mb-6" />
@@ -484,7 +565,7 @@ const Home = () => {
                 </div>
                 
                 <div className="relative">
-                    {featureStatus === 'loading' ? (
+                    {featureLoading ? (
                         <div className="flex gap-8 overflow-hidden px-6">
                             {[...Array(5)].map((_, i) => (
                                 <div key={i} className="min-w-[300px] bg-white p-10 rounded-2xl border border-gray-100 shadow-sm animate-pulse">
@@ -538,8 +619,9 @@ const Home = () => {
             </section>
 
             {/* About Section */}
-            <section id="about" className="py-24 max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-center">
-                {aboutStatus === 'loading' ? (
+            <section id="about" className="py-16 sm:py-24 overflow-hidden">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-24 items-center">
+                {aboutLoading ? (
                     <div className="contents">
                         <div className="aspect-[4/5] bg-gray-100 rounded-[2rem] animate-pulse"></div>
                         <div className="space-y-6 animate-pulse">
@@ -553,22 +635,20 @@ const Home = () => {
                             </div>
                         </div>
                     </div>
-                ) : aboutData && aboutData.length > 0 ? (
+                ) : aboutData && (aboutData?.[0] || aboutData?.data?.[0]) ? (
                     <>
                         <motion.div 
                             initial={{ opacity: 0, x: -50 }}
                             whileInView={{ opacity: 1, x: 0 }}
                             viewport={{ once: true }}
                             transition={{ duration: 0.8 }}
-                            className="relative w-full h-full min-h-[500px]"
+                            className="relative w-full overflow-hidden rounded-[1.5rem] shadow-lg min-h-[280px] sm:min-h-[400px] lg:min-h-[500px]"
                         >
-                            <div className="absolute inset-0 rounded-[1.5rem] overflow-hidden shadow-lg border-opacity-50 border-gray-100/20">
-                                <img 
-                                    src={`/storage/${aboutData[0].image}`} 
+                            <img 
+                                    src={`/storage/${(aboutData?.[0] || aboutData?.data?.[0]).image}`} 
                                     alt="About Us" 
-                                    className="w-full h-full object-cover"
+                                    className="w-full h-full object-cover absolute inset-0"
                                 />
-                            </div>
                         </motion.div>
                         
                         <motion.div
@@ -583,14 +663,15 @@ const Home = () => {
                                 <p className="text-[#A05A2C] font-semibold text-sm">About US</p>
                             </div>
                             
-                            <h2 className="text-[2.75rem] md:text-5xl font-medium text-[#1A1A1A] mb-8 leading-[1.15] tracking-tight font-sans">
-                                Welcome To Our<br/>Moonlit Hotel & Resort
+                            <h2 className="text-3xl sm:text-4xl md:text-5xl font-medium text-[#1A1A1A] mb-6 sm:mb-8 leading-[1.15] tracking-tight font-sans break-words">
+                                Welcome To Our<br/>Moonlit Hotel &amp; Resort
                             </h2>
                             
-                            <div className="space-y-6 text-[#6B7280] text-[15px] leading-[1.8] font-light text-justify">
+                            <div className="space-y-6 text-[#6B7280] text-[15px] leading-[1.8] font-light text-justify break-words overflow-hidden">
                                 {/* Split description gracefully into two logical paragraphs if it's long enough, else display as one */}
                                 {(() => {
-                                    const desc = aboutData[0].description || '';
+                                    const item = aboutData?.[0] || aboutData?.data?.[0];
+                                    const desc = item?.description || '';
                                     const mid = Math.floor(desc.length / 2);
                                     let splitIndex = desc.lastIndexOf('. ', mid);
                                     if(splitIndex === -1) splitIndex = desc.lastIndexOf(' ', mid);
@@ -642,10 +723,11 @@ const Home = () => {
                         About data not available.
                     </div>
                 )}
+              </div>
             </section>
 
             {/* Special Offers */}
-            <section id="offers" className="py-24 bg-gray-50 border-y border-gray-100">
+            <section id="offers" className="py-16 sm:py-24 bg-gray-50 border-y border-gray-100">
                 <div className="max-w-7xl mx-auto px-6">
                     <div className="flex flex-col md:flex-row items-center justify-between mb-16 gap-8">
                         <div>
@@ -669,7 +751,7 @@ const Home = () => {
                     </div>
 
                     <div className="relative">
-                        {offerStatus === 'loading' ? (
+                        {offerLoading ? (
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                                 {[...Array(3)].map((_, i) => (
                                     <div key={i} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 animate-pulse">
@@ -740,14 +822,14 @@ const Home = () => {
             </section>
 
             {/* Gallery */}
-            <section id="gallery" className="py-24 max-w-7xl mx-auto px-6 bg-white">
+            <section id="gallery" className="py-16 sm:py-24 max-w-7xl mx-auto px-4 sm:px-6 bg-white">
                 <div className="text-center mb-16">
                     <p className="text-[#B59441] font-bold uppercase tracking-[0.4em] text-[10px] mb-4">Visual Poetry</p>
                     <h2 className="text-4xl md:text-5xl font-bold text-[#202921]">The Collection</h2>
                 </div>
                 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:h-[600px]">
-                    {galleryStatus === 'loading' ? (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 md:h-[600px]">
+                    {galleryLoading ? (
                         <>
                             <div className="col-span-2 row-span-2 rounded-2xl overflow-hidden shadow-lg bg-gray-100 animate-pulse"></div>
                             <div className="rounded-2xl overflow-hidden shadow-md bg-gray-100 animate-pulse hidden md:block"></div>
@@ -788,14 +870,14 @@ const Home = () => {
             </section>
 
             {/* Contact Us */}
-            <section id="contact" className="py-24 bg-gray-50 relative overflow-hidden">
-                <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-20 relative z-10">
+            <section id="contact" className="py-16 sm:py-24 bg-gray-50 relative overflow-hidden">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-20 relative z-10">
                     <motion.div>
                         <p className="text-[#B59441] font-bold uppercase tracking-[0.4em] text-[10px] mb-4">Let's Connect</p>
                         <h2 className="text-4xl md:text-5xl font-bold text-[#202921] mb-12">Contact Us</h2>
                         
                         <div className="space-y-8">
-                            {contactStatus === 'loading' ? (
+                            {contactLoading ? (
                                 <div className="space-y-8">
                                     {[...Array(3)].map((_, i) => (
                                         <div key={i} className="flex gap-6 animate-pulse">
@@ -830,7 +912,7 @@ const Home = () => {
                     </motion.div>
 
                     <motion.div className="rounded-2xl shadow-xl overflow-hidden min-h-[400px]">
-                        {contactStatus === 'loading' ? (
+                        {contactLoading ? (
                             <div className="w-full h-full bg-gray-200 animate-pulse min-h-[400px]"></div>
                         ) : contactData && contactData.length > 0 && contactData[0].maps_iframe ? (
                             <div 
@@ -848,8 +930,8 @@ const Home = () => {
             </section>
 
             {/* Footer */}
-            <footer className="bg-white pt-24 pb-12 border-t border-gray-100">
-                <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-16 mb-20">
+            <footer className="bg-white pt-16 sm:pt-24 pb-12 border-t border-gray-100">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-16 mb-16 sm:mb-20">
                     <div className="col-span-1">
                         <span className="text-2xl font-bold text-[#202921] mb-6 block">The Elite Concierge</span>
                         <p className="text-sm text-gray-400 font-light leading-relaxed mb-8">Crafting experiences that transcend the ordinary. Every detail is a testament to our commitment to luxury.</p>

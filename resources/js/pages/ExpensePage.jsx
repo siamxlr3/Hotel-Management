@@ -13,10 +13,10 @@ import {
 } from 'react-icons/bs';
 import { RiFileTextLine } from 'react-icons/ri';
 import {
-  fetchExpenses, fetchSummary,
-  createExpense, updateExpense, deleteExpense,
-} from '../store/slices/expenseSlice';
-import { homeThunks, contactThunks } from '../store/slices/cmsSlice';
+  useGetExpensesQuery, useGetExpenseSummaryQuery,
+  useCreateExpenseMutation, useUpdateExpenseMutation, useDeleteExpenseMutation,
+} from '../store/api/expenseApi';
+import { useGetHomeQuery, useGetContactQuery } from '../store/api/cmsApi';
 import ExpenseInvoicePDF from '../components/expense/ExpenseInvoicePDF';
 import { useTranslate, formatPrice } from '../utils/localeHelper';
 
@@ -390,23 +390,8 @@ function ExpenseForm({ initial, onSave, onCancel, loading, currency }) {
    MAIN PAGE
    ════════════════════════════════════════ */
 export default function ExpensePage() {
-  const dispatch = useDispatch();
   const t = useTranslate();
-  const { expenses, meta, summary, status, actionLoading } =
-    useSelector(s => s.expense);
-  const { language, currency } = useSelector(s => s.locale);
-
-  // Dynamic Hotel Branding from CMS store
-  const cmsHome = useSelector(s => s.cms.home.data?.[0]);
-  const cmsContact = useSelector(s => s.cms.contact.data?.[0]);
-
-  const hotelInfo = useMemo(() => ({
-    hotel_name: cmsHome?.hotel_name || 'HOTEL MANAGEMENT',
-    logo: cmsHome?.logo_url,
-    address: cmsContact?.address || 'Hotel Address',
-    phone: cmsContact?.phone || 'N/A',
-    email: cmsContact?.email || 'N/A'
-  }), [cmsHome, cmsContact]);
+  const { language, currency } = useSelector(state => state.locale);
 
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState(null);
@@ -419,29 +404,37 @@ export default function ExpensePage() {
   const [dateRange, setDateRange] = useState({ from: '', to: '' });
   const [printingId, setPrintingId] = useState(null);
 
-  /* Load data */
-  useEffect(() => {
-    dispatch(fetchExpenses({
-      page,
-      per_page: 15,
-      search,
-      status: statusFilter,
-      date_from: dateRange.from,
-      date_to: dateRange.to
-    }));
-  }, [page, search, statusFilter, dateRange, dispatch]);
+  const { data: expensesData, isFetching: expensesLoading, refetch: refetchExpenses } = useGetExpensesQuery({
+    page, per_page: 15, search, status: statusFilter,
+    date_from: dateRange.from, date_to: dateRange.to
+  });
 
-  useEffect(() => {
-    dispatch(fetchSummary({
-      date_from: dateRange.from,
-      date_to: dateRange.to
-    }));
-  }, [dateRange, dispatch]);
+  const { data: summaryData } = useGetExpenseSummaryQuery({
+    date_from: dateRange.from, date_to: dateRange.to
+  });
 
-  useEffect(() => {
-    if (!cmsHome) dispatch(homeThunks.fetch());
-    if (!cmsContact) dispatch(contactThunks.fetch());
-  }, [cmsHome, cmsContact, dispatch]);
+  const { data: homeData } = useGetHomeQuery();
+  const { data: contactData } = useGetContactQuery();
+
+  const [createExpenseFn, { isLoading: creating }] = useCreateExpenseMutation();
+  const [updateExpenseFn, { isLoading: updating }] = useUpdateExpenseMutation();
+  const [deleteExpenseFn, { isLoading: deleting }] = useDeleteExpenseMutation();
+
+  const expenses = expensesData?.data || [];
+  const meta = expensesData?.meta || { current_page: 1, last_page: 1, per_page: 15, total: 0 };
+  const summary = summaryData || { total_expenses: 0, paid_total: 0, unpaid_total: 0, total_count: 0, paid_count: 0, unpaid_count: 0 };
+  const actionLoading = creating || updating || deleting;
+
+  const cmsHome = homeData?.data?.[0];
+  const cmsContact = contactData?.data?.[0];
+
+  const hotelInfo = useMemo(() => ({
+    hotel_name: cmsHome?.hotel_name || 'HOTEL MANAGEMENT',
+    logo: cmsHome?.logo_url,
+    address: cmsContact?.address || 'Hotel Address',
+    phone: cmsContact?.phone || 'N/A',
+    email: cmsContact?.email || 'N/A'
+  }), [cmsHome, cmsContact]);
 
   /* Debounced search */
   useEffect(() => {
@@ -455,31 +448,25 @@ export default function ExpensePage() {
   const closeForm = () => { setShowForm(false); setEditItem(null); };
 
   const handleSave = async (payload) => {
-    const res = await dispatch(
-      payload.id ? updateExpense(payload) : createExpense(payload)
-    );
-    if (res.meta.requestStatus === 'fulfilled') {
+    try {
+      if (payload.id) {
+        await updateExpenseFn(payload).unwrap();
+      } else {
+        await createExpenseFn(payload).unwrap();
+      }
       toast.success(payload.id ? t('Updated successfully!') : t('Created successfully!'));
       closeForm();
-      dispatch(fetchSummary({
-        date_from: dateRange.from,
-        date_to: dateRange.to
-      }));
-    } else {
-      toast.error(res.payload || t('Something went wrong'));
+    } catch (err) {
+      toast.error(err?.data?.message || t('Something went wrong'));
     }
   };
 
   const handleDelete = async () => {
-    const res = await dispatch(deleteExpense(deleteItem.id));
-    if (res.meta.requestStatus === 'fulfilled') {
+    try {
+      await deleteExpenseFn(deleteItem.id).unwrap();
       toast.success(t('Deleted successfully!'));
-      dispatch(fetchSummary({
-        date_from: dateRange.from,
-        date_to: dateRange.to
-      }));
-    } else {
-      toast.error(res.payload || t('Cannot delete'));
+    } catch (err) {
+      toast.error(err?.data?.message || t('Cannot delete'));
     }
     setDeleteItem(null);
   };
@@ -681,12 +668,9 @@ export default function ExpensePage() {
 
             {/* Refresh */}
             <button
-              onClick={() => dispatch(fetchExpenses({
-                page, per_page: 15, search, status: statusFilter,
-                date_from: dateRange.from, date_to: dateRange.to
-              }))}
+              onClick={() => refetchExpenses()}
               className="p-2 rounded-xl hover:bg-gray-100 transition-colors">
-              <MdRefresh size={18} className={`text-gray-400 ${status === 'loading' ? 'animate-spin' : ''}`} />
+              <MdRefresh size={18} className={`text-gray-400 ${expensesLoading ? 'animate-spin' : ''}`} />
             </button>
 
             <span className="text-xs text-gray-400 whitespace-nowrap">{meta.total} {t('records')}</span>
@@ -714,7 +698,7 @@ export default function ExpensePage() {
               </tr>
             </thead>
             <tbody>
-              {status === 'loading' ? <SkeletonRow /> :
+              {expensesLoading ? <SkeletonRow /> :
                 expenses.length === 0 ? (
                   <tr>
                     <td colSpan={13} className="px-5 py-16 text-center">

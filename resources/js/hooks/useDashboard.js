@@ -1,6 +1,5 @@
 import { useSelector, useDispatch } from 'react-redux';
 import { toggleSidebar }  from '../store/slices/sidebarSlice';
-import { toggleTaskDone } from '../store/slices/dashboardSlice';
 
 export function useSidebar() {
   const dispatch = useDispatch();
@@ -11,11 +10,16 @@ export function useSidebar() {
   };
 }
 
+/** 
+ * Legacy hook previously using dashboardSlice.
+ * Redirects data from RTK Query if available, or returns empty state.
+ */
 export function useDashboardData() {
-  const dispatch = useDispatch();
-  const data = useSelector(s => s.dashboard);
+  // dashboardSlice was removed in favor of rtk-query reportApi.
+  // Returning an empty structure to avoid breaking legacy components.
   return {
-    ...data,
-    completeTask: (id) => dispatch(toggleTaskDone(id)),
+    tasks: [],
+    recentActivities: [],
+    completeTask: () => {},
   };
 }

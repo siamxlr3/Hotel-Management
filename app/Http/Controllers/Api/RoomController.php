@@ -56,6 +56,17 @@ class RoomController extends Controller
         }
     }
 
+    public function updateStatus(Request $request, Room $room): JsonResponse
+    {
+        try {
+            $request->validate(['status' => 'required|string']);
+            $room->update(['status' => $request->status]);
+            return response()->json(['success' => true, 'message' => 'Room status updated successfully.']);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
     public function destroy(Room $room): JsonResponse
     {
         try {

@@ -7,31 +7,35 @@ import {
   MdClose, MdSearch, MdRefresh, MdPayment, MdCalendarToday, MdPerson
 } from 'react-icons/md';
 import { BsPersonVcardFill } from 'react-icons/bs';
-
-import {
-  fetchReservationRooms,
-  fetchTodayCheckouts,
-  createReservation,
-  updateReservation,
-  cancelReservation,
-  fastUpdateRoomStatus,
-  fetchActiveReservationForRoom
-} from '../store/slices/reservationSlice';
-
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import ReservationInvoicePDF from '../components/reservation/ReservationInvoicePDF';
 
 import {
-  fetchTaxes,
+  useGetReservationsQuery,
+  useGetCheckoutsQuery,
+  useCreateReservationMutation,
+  useUpdateReservationMutation,
+  useCancelReservationMutation,
+  useGetActiveReservationQuery
+} from '../store/api/reservationApi';
 
-  fetchGlobalDiscounts,
-  fetchCategoryDiscounts
-} from '../store/slices/settingSlice';
+import {
+  useGetRoomsQuery,
+  useGetAllCategoriesQuery,
+  useUpdateRoomStatusMutation
+} from '../store/api/roomApi';
 
+import {
+  useGetTaxesQuery,
+  useGetGlobalDiscountsQuery,
+  useGetCategoryDiscountsQuery
+} from '../store/api/settingApi';
 
-import { fetchAllCategories } from '../store/slices/roomSlice';
+import {
+  useGetHomeQuery,
+  useGetContactQuery
+} from '../store/api/cmsApi';
 import { translate, formatPrice } from '../utils/localeHelper';
-import { homeThunks, contactThunks } from '../store/slices/cmsSlice';
 
 /* ─── UI Constants ─── */
 const STATUS_COLORS = {
@@ -147,75 +151,85 @@ function RoomCard({ room, onClick, globalDiscounts, categoryDiscounts, language,
 /* ─── Main Page Component ─── */
 
 export default function ReservationPage() {
-  const dispatch = useDispatch();
   const { language, currency } = useSelector(state => state.locale);
-  const { rooms, loadingRooms, roomMeta, checkouts, loadingCheckouts, actionLoading } = useSelector(state => state.reservation);
-  const { allCategories } = useSelector(state => state.room);
-  const { taxes, globalDiscounts, categoryDiscounts } = useSelector(state => state.setting);
-
-  // Dynamic Hotel Branding from CMS store
-  const cmsHome = useSelector(s => s.cms.home.data?.[0]);
-  const cmsContact = useSelector(s => s.cms.contact.data?.[0]);
-
-  const hotelInfo = useMemo(() => ({
-    hotel_name: cmsHome?.hotel_name || 'HOTEL MANAGEMENT',
-    logo: cmsHome?.logo_url,
-    address: cmsContact?.address || 'Hotel Address',
-    phone: cmsContact?.phone || 'N/A',
-    email: cmsContact?.email || 'N/A'
-  }), [cmsHome, cmsContact]);
-
-  useEffect(() => {
-    if (!cmsHome) dispatch(homeThunks.fetch());
-    if (!cmsContact) dispatch(contactThunks.fetch());
-  }, [cmsHome, cmsContact, dispatch]);
-
-  // Filters
+  
+  // Local States
   const [filterStatus, setFilterStatus] = useState('All');
   const [filterCategory, setFilterCategory] = useState('All');
   const [checkoutDate, setCheckoutDate] = useState(new Date().toISOString().split('T')[0]);
-
-  // Modal States
   const [selectedRoom, setSelectedRoom] = useState(null);
-  const [modalType, setModalType] = useState(null); // 'actionChoice', 'bookingForm', 'reserveForm', 'paymentForm', 'cleaningForm'
+  const [activeReservationRoomId, setActiveReservationRoomId] = useState(null); 
+  const [modalType, setModalType] = useState(null); 
   const [activeReservation, setActiveReservation] = useState(null);
-
-  // Form State
   const [form, setForm] = useState({
     guest_name: '', guest_phone: '', guest_email: '',
     identity_type: 'NID', identity_number: '',
     person_count: 1, check_in: '', check_out: '',
-    payment_method: 'Cash', subtotal: 0, tax_percent: 10,
-    global_discount_percent: 0, category_discount_percent: 0
+    payment_method: 'Cash', subtotal: 0, tax_percent: 0,
+    global_discount_percent: 0, category_discount_percent: 0,
+    base_nightly_rate: 0
   });
+  // RTK Query Hooks
+  const { data: roomsData, isFetching: loadingRooms, refetch: refetchRooms } = useGetRoomsQuery({
+    status: filterStatus !== 'All' ? filterStatus : '',
+    category_id: filterCategory !== 'All' ? filterCategory : '',
+    per_page: 50
+  });
+  const rooms = roomsData?.data || [];
 
-  // Initial Data Load
+  const { data: checkoutsData, isFetching: loadingCheckouts, refetch: refetchCheckouts } = useGetCheckoutsQuery({ date: checkoutDate });
+  const checkouts = checkoutsData?.data || [];
+
+  const { data: allCategories = [] } = useGetAllCategoriesQuery();
+  const { data: taxesData } = useGetTaxesQuery({ status: 'Active' });
+  const { data: globalDiscountsData } = useGetGlobalDiscountsQuery({ status: 'Active' });
+  const { data: categoryDiscountsData } = useGetCategoryDiscountsQuery({ status: 'Active' });
+
+  const { data: cmsHomeData } = useGetHomeQuery();
+  const { data: cmsContactData } = useGetContactQuery();
+
+  const [createReservationFn, { isLoading: creatingReservation }] = useCreateReservationMutation();
+  const [updateReservationFn, { isLoading: updatingReservation }] = useUpdateReservationMutation();
+  const [cancelReservationFn, { isLoading: cancellingReservation }] = useCancelReservationMutation();
+  const [updateRoomStatusFn, { isLoading: updatingRoomStatus }] = useUpdateRoomStatusMutation();
+
+  const actionLoading = creatingReservation || updatingReservation || cancellingReservation || updatingRoomStatus;
+
+  // Active Reservation Query (Lazy-ish via skip)
+  const { data: activeResFromQuery, isFetching: fetchingActiveRes } = useGetActiveReservationQuery(
+    activeReservationRoomId, 
+    { skip: !activeReservationRoomId }
+  );
+
   useEffect(() => {
-    dispatch(fetchAllCategories());
-    dispatch(fetchTaxes());
-    dispatch(fetchGlobalDiscounts());
-    dispatch(fetchCategoryDiscounts());
-  }, []);
+    if (activeResFromQuery && activeReservationRoomId) {
+      setActiveReservation(activeResFromQuery);
+      
+      if (modalType === 'paymentForm' || modalType === 'reservedAction') {
+        // Sync subtotal if needed
+        const st = Number(activeResFromQuery.subtotal);
+        if (st) setForm(prev => ({ ...prev, subtotal: st }));
+      }
+    }
+  }, [activeResFromQuery, activeReservationRoomId, modalType]);
 
-  useEffect(() => {
-    fetchRoomsData();
-  }, [filterStatus, filterCategory]);
-
-  useEffect(() => {
-    dispatch(fetchTodayCheckouts({ date: checkoutDate }));
-  }, [checkoutDate]);
-
-  const fetchRoomsData = () => {
-    dispatch(fetchReservationRooms({
-      status: filterStatus !== 'All' ? filterStatus : '',
-      category_id: filterCategory !== 'All' ? filterCategory : '',
-      per_page: 50 // load a good chunk for the grid
-    }));
-  };
+  const hotelInfo = useMemo(() => {
+    const cmsHome = cmsHomeData?.[0] || cmsHomeData?.data?.[0];
+    const cmsContact = cmsContactData?.[0] || cmsContactData?.data?.[0];
+    return {
+      hotel_name: cmsHome?.hotel_name || 'HOTEL MANAGEMENT',
+      logo: cmsHome?.logo_url,
+      address: cmsContact?.address || 'Hotel Address',
+      phone: cmsContact?.phone || 'N/A',
+      email: cmsContact?.email || 'N/A'
+    };
+  }, [cmsHomeData, cmsContactData]);
 
   /* ─── Room Click Flow ─── */
   const handleRoomClick = async (room) => {
     setSelectedRoom(room);
+    setActiveReservation(null);
+    setActiveReservationRoomId(null);
     
     // Reset Form
     const today = new Date().toISOString().split('T')[0];
@@ -223,14 +237,14 @@ export default function ReservationPage() {
     tomorrow.setDate(tomorrow.getDate() + 1);
     
     // Calculate discounted price for this room
-    const activeGlobalDiscount = globalDiscounts?.data?.find(d => d.status === 'Active' && (!d.room_id || d.room_id === room.id))?.value || 0;
-    const activeCategoryDiscount = categoryDiscounts?.data?.find(d => d.status === 'Active' && d.category_id === room.category_id && (!d.room_id || d.room_id === room.id))?.value || 0;
+    const activeGlobalDiscount = globalDiscountsData?.data?.find(d => d.status === 'Active' && (!d.room_id || d.room_id === room.id))?.value || 0;
+    const activeCategoryDiscount = categoryDiscountsData?.data?.find(d => d.status === 'Active' && d.category_id === room.category_id && (!d.room_id || d.room_id === room.id))?.value || 0;
     
     const totalDiscountPercent = Number(activeGlobalDiscount) + Number(activeCategoryDiscount);
     const discountedPrice = Number(room.base_price) - (Number(room.base_price) * (totalDiscountPercent / 100));
 
     // Calculate active tax rate
-    const activeTax = taxes?.data?.find(t => t.status === 'Active')?.rate || 10;
+    const activeTax = taxesData?.data?.find(t => t.status === 'Active')?.rate || 10;
 
     setForm({
       guest_name: '', guest_phone: '', guest_email: '',
@@ -238,31 +252,16 @@ export default function ReservationPage() {
       person_count: 1, check_in: today, check_out: tomorrow.toISOString().split('T')[0],
       payment_method: 'Cash', subtotal: discountedPrice, tax_percent: activeTax,
       global_discount_percent: activeGlobalDiscount, category_discount_percent: activeCategoryDiscount,
-      base_nightly_rate: discountedPrice // Store this for dynamic nights calculation
+      base_nightly_rate: discountedPrice 
     });
 
     if (room.status === 'Available') {
       setModalType('actionChoice');
     } else if (room.status === 'Reserved') {
-      // Fetch active reservation
-      const res = await fetchActiveReservationForRoom(room.id);
-      setActiveReservation(res);
-      setModalType('reservedAction'); // Could transition to Occupied
+      setActiveReservationRoomId(room.id);
+      setModalType('reservedAction');
     } else if (room.status === 'Occupied') {
-      const res = await fetchActiveReservationForRoom(room.id);
-      setActiveReservation(res);
-      
-      if (res) {
-        // Keep existing check-in/out dates from reservation
-        const checkIn = new Date(res.check_in);
-        const checkOut = new Date(res.check_out);
-        const nights = Math.max(1, Math.ceil(Math.abs(checkOut - checkIn) / (1000 * 60 * 60 * 24)));
-        
-        setForm(prev => ({
-          ...prev,
-          subtotal: Number(res.subtotal) || (discountedPrice * nights)
-        }));
-      }
+      setActiveReservationRoomId(room.id);
       setModalType('paymentForm');
     } else if (room.status === 'Cleaning') {
       setModalType('cleaningAction');
@@ -276,70 +275,75 @@ export default function ReservationPage() {
     setModalType(null);
     setSelectedRoom(null);
     setActiveReservation(null);
+    setActiveReservationRoomId(null);
   };
 
   /* ─── Actions ─── */
   const submitBooking = async (type) => {
-    // Dynamic calculate subtotal based on form dates
-    const checkIn = new Date(form.check_in);
-    const checkOut = new Date(form.check_out);
-    const nights = Math.max(1, Math.ceil(Math.abs(checkOut - checkIn) / (1000 * 60 * 60 * 24)));
-    const calculatedSubtotal = form.base_nightly_rate * nights;
+    try {
+      const checkIn = new Date(form.check_in);
+      const checkOut = new Date(form.check_out);
+      const nights = Math.max(1, Math.ceil(Math.abs(checkOut - checkIn) / (1000 * 60 * 60 * 24)));
+      const calculatedSubtotal = form.base_nightly_rate * nights;
 
-    // type: 'Booking' or 'Reservation'
-    const payload = {
-      ...form,
-      room_id: selectedRoom.id,
-      booking_type: type,
-      status: 'Unpaid',
-      subtotal: calculatedSubtotal,
-      tax_amount: (calculatedSubtotal * (form.tax_percent / 100)),
-      discount_amount: (Number(selectedRoom.base_price) * nights) - calculatedSubtotal, 
-      total_amount: calculatedSubtotal + (calculatedSubtotal * (form.tax_percent / 100))
-    };
+      const payload = {
+        ...form,
+        room_id: selectedRoom.id,
+        booking_type: type,
+        status: 'Unpaid',
+        subtotal: calculatedSubtotal,
+        tax_amount: (calculatedSubtotal * (form.tax_percent / 100)),
+        discount_amount: (Number(selectedRoom.base_price) * nights) - calculatedSubtotal, 
+        total_amount: calculatedSubtotal + (calculatedSubtotal * (form.tax_percent / 100)),
+        ...(type === 'Booking' && { checked_in_at: new Date().toISOString() })
+      };
 
-    const res = await dispatch(createReservation(payload));
-    if (res.meta.requestStatus === 'fulfilled') {
+      await createReservationFn(payload).unwrap();
       toast.success(`${type} successful!`);
-      fetchRoomsData(); 
-      dispatch(fetchTodayCheckouts({ date: checkoutDate }));
+      refetchRooms();
+      refetchCheckouts();
       closeModal();
-    } else {
-      toast.error('Failed to create booking.');
+    } catch (err) {
+      toast.error(err?.data?.message || 'Failed to create booking.');
     }
   };
 
   const processPayment = async () => {
     if (!activeReservation) return toast.error("No active reservation found.");
     
-    const payload = {
-      id: activeReservation.id,
-      payment_method: form.payment_method,
-      status: 'Paid',
-      payment_status: 'Completed',
-      checked_out_at: new Date().toISOString()
-    };
+    try {
+      const payload = {
+        id: activeReservation.id,
+        payment_method: form.payment_method,
+        status: 'Paid',
+        payment_status: 'Completed',
+        checked_out_at: new Date().toISOString()
+      };
 
-    const res = await dispatch(updateReservation(payload));
-    if (res.meta.requestStatus === 'fulfilled') {
+      const res = await updateReservationFn(payload).unwrap();
       toast.success('Payment processed! Invoice generated.');
-      fetchRoomsData();
-      dispatch(fetchTodayCheckouts({ date: checkoutDate }));
+      refetchRooms();
+      refetchCheckouts();
       
       // Navigate to download receipt state
-      setActiveReservation({ ...activeReservation, ...res.payload, room: selectedRoom });
+      setActiveReservation({ ...activeReservation, ...res, room: selectedRoom });
       setModalType('downloadReceipt');
+    } catch (err) {
+      toast.error(err?.data?.message || 'Failed to process payment.');
     }
   };
 
 
   const checkInReserved = async () => {
     if (!activeReservation) return;
-    const res = await dispatch(updateReservation({ id: activeReservation.id, booking_type: 'Booking', checked_in_at: new Date().toISOString() }));
-    if (res.meta.requestStatus === 'fulfilled') {
+    try {
+      await updateReservationFn({ id: activeReservation.id, booking_type: 'Booking', checked_in_at: new Date().toISOString() }).unwrap();
       toast.success('Guest Checked-In.');
-      fetchRoomsData();
+      refetchRooms();
+      refetchCheckouts();
       closeModal();
+    } catch (err) {
+      toast.error(err?.data?.message || 'Failed to check-in.');
     }
   };
 
@@ -361,13 +365,14 @@ export default function ReservationPage() {
           <button 
             onClick={async () => {
               toast.dismiss(t.id);
-              const res = await dispatch(cancelReservation(activeReservation.id));
-              if (res.meta.requestStatus === 'fulfilled') {
+              try {
+                await cancelReservationFn(activeReservation.id).unwrap();
                 toast.success(translate('Reservation cancelled successfully.', language));
-                fetchRoomsData();
+                refetchRooms();
+                refetchCheckouts();
                 closeModal();
-              } else {
-                toast.error(translate('Failed to cancel reservation.', language));
+              } catch (err) {
+                toast.error(err?.data?.message || translate('Failed to cancel reservation.', language));
               }
             }}
             className="px-4 py-2 text-xs font-bold text-white bg-red-500 hover:bg-red-600 rounded-xl transition-colors shadow-md"
@@ -383,11 +388,13 @@ export default function ReservationPage() {
   };
 
   const finishCleaning = async () => {
-    const res = await dispatch(fastUpdateRoomStatus({ id: selectedRoom.id, status: 'Available' }));
-    if (res.meta.requestStatus === 'fulfilled') {
+    try {
+      await updateRoomStatusFn({ id: selectedRoom.id, status: 'Available' }).unwrap();
       toast.success('Room marked as Available.');
-      fetchRoomsData();
+      refetchRooms();
       closeModal();
+    } catch (err) {
+      toast.error(err?.data?.message || 'Failed to update status.');
     }
   };
 
@@ -406,12 +413,16 @@ export default function ReservationPage() {
       {/* ─── LEFT: MAIN GRID ─── */}
       <div className="flex-1 flex flex-col p-6 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
         
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-black text-gray-900 tracking-tight" style={{ fontFamily:'"Plus Jakarta Sans",sans-serif' }}>
-            {translate('Reservations', language)}
-          </h1>
-          <p className="text-sm text-gray-400 font-medium">{translate('Front-desk room and inventory control', language)}</p>
+        <div className="flex items-center gap-4 mb-6">
+          <div className="flex-1">
+            <h1 className="text-2xl font-black text-gray-900 tracking-tight" style={{ fontFamily:'"Plus Jakarta Sans",sans-serif' }}>
+              {translate('Reservations', language)}
+            </h1>
+            <p className="text-sm text-gray-400 font-medium">{translate('Front-desk room and inventory control', language)}</p>
+          </div>
+          <button onClick={() => refetchRooms()} className="p-2 rounded-xl bg-white border border-gray-100 shadow-sm hover:bg-gray-50 transition-colors text-gray-500">
+            <MdRefresh size={20} className={loadingRooms ? 'animate-spin' : ''} />
+          </button>
         </div>
 
         {/* Status Pills */}
@@ -464,8 +475,8 @@ export default function ReservationPage() {
                 key={room.id} 
                 room={room} 
                 onClick={handleRoomClick} 
-                globalDiscounts={globalDiscounts?.data} 
-                categoryDiscounts={categoryDiscounts?.data} 
+                globalDiscounts={globalDiscountsData?.data} 
+                categoryDiscounts={categoryDiscountsData?.data} 
                 language={language}
                 currency={currency}
               />
@@ -485,8 +496,8 @@ export default function ReservationPage() {
           <h2 className="text-base font-bold text-gray-800 flex items-center gap-2">
             <BsPersonVcardFill className="text-indigo-500" /> {translate("Today's Checkouts", language)}
           </h2>
-          <button onClick={() => dispatch(fetchTodayCheckouts({date: checkoutDate}))} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
-            <MdRefresh size={18} />
+          <button onClick={() => refetchCheckouts()} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
+            <MdRefresh size={18} className={loadingCheckouts ? 'animate-spin' : ''} />
           </button>
         </div>
 
@@ -612,9 +623,14 @@ export default function ReservationPage() {
                            <option value="DRIVING LICENCE">Driving Licence</option>
                          </select>
                        </div>
-                       <div>
-                         <label className="block text-[11px] font-bold text-gray-500 mb-1.5 uppercase tracking-wider">{translate('ID Number', language)}</label>
+                       <div className="col-span-2">
+                         <label className="block text-[11px] font-bold text-gray-500 mb-1.5 uppercase tracking-wider">{translate('Identity Number', language)}</label>
                          <input required type="text" value={form.identity_number} onChange={e => setForm({...form, identity_number: e.target.value})} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#A8D5A2] focus:bg-white transition-colors" placeholder="123456789" />
+                       </div>
+
+                       <div className="col-span-2">
+                         <label className="block text-[11px] font-bold text-gray-500 mb-1.5 uppercase tracking-wider">{translate('Number of Persons', language)}</label>
+                         <input required type="number" min="1" value={form.person_count} onChange={e => setForm({...form, person_count: parseInt(e.target.value) || 1})} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#A8D5A2] focus:bg-white transition-colors" />
                        </div>
 
                        <div>
@@ -664,21 +680,21 @@ export default function ReservationPage() {
                        <MdPayment className="absolute right-[-20px] top-[-20px] text-gray-200/50" size={120} />
                        
                        <div className="flex justify-between items-end relative z-10 w-full mb-2 border-b border-gray-200/60 pb-2">
-                         <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">{translate('Nights', language)}</span>
+                         <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">{translate('Nights', language)} ({formatPrice(selectedRoom?.base_price || 0, currency)} / {translate('night', language)})</span>
                          <span className="text-sm font-semibold text-gray-800">
-                           {Math.max(1, Math.ceil(Math.abs(new Date(activeReservation?.check_out) - new Date(activeReservation?.check_in)) / (1000 * 60 * 60 * 24)))}
+                           {activeReservation?.check_in && activeReservation?.check_out ? Math.max(1, Math.ceil(Math.abs(new Date(activeReservation.check_out) - new Date(activeReservation.check_in)) / (1000 * 60 * 60 * 24))) : 1}
                          </span>
                        </div>
 
                        <div className="flex justify-between items-end relative z-10 w-full mb-2">
-                         <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">{translate('Subtotal', language)} ({translate('Price', language)}: {formatPrice((form.subtotal / Math.max(1, Math.ceil(Math.abs(new Date(activeReservation?.check_out) - new Date(activeReservation?.check_in)) / (1000 * 60 * 60 * 24)))), currency)})</span>
+                         <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">{translate('Subtotal', language)}</span>
                          <span className="text-sm font-semibold text-gray-800">{formatPrice(form.subtotal, currency)}</span>
                        </div>
                        
                        {(form.global_discount_percent > 0 || form.category_discount_percent > 0) && (
                          <div className="flex justify-between items-end relative z-10 w-full mb-2 text-red-500">
                            <span className="text-[11px] font-bold uppercase tracking-widest">{translate('Discount Applied', language)}</span>
-                           <span className="text-sm font-semibold">-{formatPrice(((Number(selectedRoom?.base_price || 0) * Math.max(1, Math.ceil(Math.abs(new Date(activeReservation?.check_out) - new Date(activeReservation?.check_in)) / (1000 * 60 * 60 * 24)))) - Number(form.subtotal)), currency)}</span>
+                           <span className="text-sm font-semibold">-{formatPrice(((Number(selectedRoom?.base_price || 0) * (activeReservation?.check_in && activeReservation?.check_out ? Math.max(1, Math.ceil(Math.abs(new Date(activeReservation.check_out) - new Date(activeReservation.check_in)) / (1000 * 60 * 60 * 24))) : 1)) - Number(form.subtotal)), currency)}</span>
                          </div>
                        )}
 

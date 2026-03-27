@@ -10,13 +10,11 @@ import {
 import { RiPercentLine, RiPriceTag3Line } from 'react-icons/ri';
 import { BsCashCoin } from 'react-icons/bs';
 import {
-  fetchTaxes, createTax, updateTax, deleteTax,
-  fetchGlobalDiscounts, createGlobalDiscount,
-  updateGlobalDiscount, deleteGlobalDiscount,
-  fetchCategoryDiscounts, createCategoryDiscount,
-  updateCategoryDiscount, deleteCategoryDiscount,
-  fetchRoomsDropdown, fetchCategoriesDropdown,
-} from '../store/slices/settingSlice';
+  useGetTaxesQuery, useCreateTaxMutation, useUpdateTaxMutation, useDeleteTaxMutation,
+  useGetGlobalDiscountsQuery, useCreateGlobalDiscountMutation, useUpdateGlobalDiscountMutation, useDeleteGlobalDiscountMutation,
+  useGetCategoryDiscountsQuery, useCreateCategoryDiscountMutation, useUpdateCategoryDiscountMutation, useDeleteCategoryDiscountMutation,
+  useGetRoomsDropdownQuery, useGetCategoriesDropdownQuery,
+} from '../store/api/settingApi';
 import { translate } from '../utils/localeHelper';
 
 /* ── constants ─────────────────────── */
@@ -479,14 +477,7 @@ function DateRange({ from, until, language }) {
    MAIN PAGE
 ════════════════════════════════════════ */
 export default function SettingPage() {
-  const dispatch = useDispatch();
   const { language } = useSelector(s => s.locale);
-  const {
-    taxes, globalDiscounts, categoryDiscounts,
-    roomsDropdown, categoriesDropdown,
-    taxStatus, globalStatus, categoryStatus,
-    actionLoading,
-  } = useSelector(s => s.setting);
 
   const [tab,         setTab]        = useState('taxes');
   const [showForm,    setShowForm]   = useState(false);
@@ -496,22 +487,38 @@ export default function SettingPage() {
   const [globalPage,  setGlobalPage] = useState(1);
   const [catPage,     setCatPage]    = useState(1);
 
-  /* Load data */
-  useEffect(() => { dispatch(fetchTaxes({ page: taxPage, per_page: 15 })); },          [taxPage, dispatch]);
-  useEffect(() => { dispatch(fetchGlobalDiscounts({ page: globalPage, per_page: 15 }));},  [globalPage, dispatch]);
-  useEffect(() => { dispatch(fetchCategoryDiscounts({ page: catPage, per_page: 15 })); }, [catPage, dispatch]);
-  useEffect(() => {
-    dispatch(fetchRoomsDropdown());
-    dispatch(fetchCategoriesDropdown());
-  }, [dispatch]);
+  /* RTK Query Hooks */
+  const { data: taxesDataResponse, isFetching: taxesLoading, refetch: refetchTaxes } = useGetTaxesQuery({ page: taxPage, per_page: 15 });
+  const { data: globalDataResponse, isFetching: globalLoading, refetch: refetchGlobal } = useGetGlobalDiscountsQuery({ page: globalPage, per_page: 15 });
+  const { data: catDataResponse, isFetching: catLoading, refetch: refetchCat } = useGetCategoryDiscountsQuery({ page: catPage, per_page: 15 });
 
-  /* Re-fetch dropdowns when form opens */
-  useEffect(() => {
-    if (showForm) {
-      dispatch(fetchRoomsDropdown());
-      dispatch(fetchCategoriesDropdown());
-    }
-  }, [showForm, dispatch]);
+  const { data: roomsDropdown = [] } = useGetRoomsDropdownQuery();
+  const { data: categoriesDropdown = [] } = useGetCategoriesDropdownQuery();
+
+  const [createTaxFn, { isLoading: creatingTax }] = useCreateTaxMutation();
+  const [updateTaxFn, { isLoading: updatingTax }] = useUpdateTaxMutation();
+  const [deleteTaxFn, { isLoading: deletingTax }] = useDeleteTaxMutation();
+
+  const [createGlobalFn, { isLoading: creatingGlobal }] = useCreateGlobalDiscountMutation();
+  const [updateGlobalFn, { isLoading: updatingGlobal }] = useUpdateGlobalDiscountMutation();
+  const [deleteGlobalFn, { isLoading: deletingGlobal }] = useDeleteGlobalDiscountMutation();
+
+  const [createCatFn, { isLoading: creatingCat }] = useCreateCategoryDiscountMutation();
+  const [updateCatFn, { isLoading: updatingCat }] = useUpdateCategoryDiscountMutation();
+  const [deleteCatFn, { isLoading: deletingCat }] = useDeleteCategoryDiscountMutation();
+
+  const taxes = taxesDataResponse?.data || [];
+  const taxMeta = taxesDataResponse?.meta || { current_page: 1, last_page: 1, per_page: 15, total: 0 };
+  
+  const globalDiscounts = globalDataResponse?.data || [];
+  const globalMeta = globalDataResponse?.meta || { current_page: 1, last_page: 1, per_page: 15, total: 0 };
+
+  const categoryDiscounts = catDataResponse?.data || [];
+  const categoryMeta = catDataResponse?.meta || { current_page: 1, last_page: 1, per_page: 15, total: 0 };
+
+  const actionLoading = creatingTax || updatingTax || deletingTax || 
+                        creatingGlobal || updatingGlobal || deletingGlobal ||
+                        creatingCat || updatingCat || deletingCat;
 
   /* ── Handlers ── */
   const openCreate = () => { setEditItem(null); setShowForm(true); };
@@ -519,41 +526,42 @@ export default function SettingPage() {
   const closeForm  = () => { setShowForm(false); setEditItem(null); };
 
   const handleSave = async (form) => {
-    const actions = {
-      taxes:    editItem ? updateTax({ id: editItem.id, ...form })                  : createTax(form),
-      global:   editItem ? updateGlobalDiscount({ id: editItem.id, ...form })       : createGlobalDiscount(form),
-      category: editItem ? updateCategoryDiscount({ id: editItem.id, ...form })     : createCategoryDiscount(form),
-    };
-    const res = await dispatch(actions[tab]);
-    if (res.meta.requestStatus === 'fulfilled') {
+    try {
+      if (tab === 'taxes') {
+        if (editItem) await updateTaxFn({ id: editItem.id, ...form }).unwrap();
+        else await createTaxFn(form).unwrap();
+      } else if (tab === 'global') {
+        if (editItem) await updateGlobalFn({ id: editItem.id, ...form }).unwrap();
+        else await createGlobalFn(form).unwrap();
+      } else {
+        if (editItem) await updateCatFn({ id: editItem.id, ...form }).unwrap();
+        else await createCatFn(form).unwrap();
+      }
       toast.success(editItem ? translate('Updated successfully!', language) : translate('Created successfully!', language));
       closeForm();
-    } else {
-      toast.error(res.payload || translate('Something went wrong', language));
+    } catch (err) {
+      toast.error(err?.data?.message || translate('Something went wrong', language));
     }
   };
 
   const handleDelete = async () => {
     if (!deleteItem) return;
-    const actions = {
-      taxes:    deleteTax(deleteItem.id),
-      global:   deleteGlobalDiscount(deleteItem.id),
-      category: deleteCategoryDiscount(deleteItem.id),
-    };
-    const res = await dispatch(actions[tab]);
-    if (res.meta.requestStatus === 'fulfilled') {
+    try {
+      if (tab === 'taxes') await deleteTaxFn(deleteItem.id).unwrap();
+      else if (tab === 'global') await deleteGlobalFn(deleteItem.id).unwrap();
+      else await deleteCatFn(deleteItem.id).unwrap();
       toast.success(translate('Deleted permanently!', language));
-    } else {
-      toast.error(res.payload || translate('Cannot delete', language));
+    } catch (err) {
+      toast.error(err?.data?.message || translate('Cannot delete', language));
     }
     setDeleteItem(null);
   };
 
   /* ── Tab meta ── */
   const tabMeta = {
-    taxes:    { data: taxes.data,             meta: taxes.meta,             status: taxStatus,      cols: 4 },
-    global:   { data: globalDiscounts.data,   meta: globalDiscounts.meta,   status: globalStatus,   cols: 7 },
-    category: { data: categoryDiscounts.data, meta: categoryDiscounts.meta, status: categoryStatus, cols: 8 },
+    taxes:    { data: taxes,             meta: taxMeta,             status: taxesLoading ? 'loading' : 'idle',      cols: 4 },
+    global:   { data: globalDiscounts,   meta: globalMeta,          status: globalLoading ? 'loading' : 'idle',   cols: 7 },
+    category: { data: categoryDiscounts, meta: categoryMeta,        status: catLoading ? 'loading' : 'idle', cols: 8 },
   };
   const current = tabMeta[tab];
 
@@ -606,9 +614,9 @@ export default function SettingPage() {
       {/* Summary stat cards */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: translate('Total Taxes', language),             value: taxes.meta.total,             color:'#E8F5E0', text:'#2D5A30', icon:<RiPercentLine size={20}/> },
-          { label: translate('Global Discounts', language),        value: globalDiscounts.meta.total,   color:'#FEF3C7', text:'#92400E', icon:<RiPriceTag3Line size={20}/> },
-          { label: translate('Category Discounts', language),      value: categoryDiscounts.meta.total, color:'#EDE9FE', text:'#5B21B6', icon:<MdDiscount size={20}/> },
+          { label: translate('Total Taxes', language),             value: taxMeta.total,             color:'#E8F5E0', text:'#2D5A30', icon:<RiPercentLine size={20}/> },
+          { label: translate('Global Discounts', language),        value: globalMeta.total,   color:'#FEF3C7', text:'#92400E', icon:<RiPriceTag3Line size={20}/> },
+          { label: translate('Category Discounts', language),      value: categoryMeta.total, color:'#EDE9FE', text:'#5B21B6', icon:<MdDiscount size={20}/> },
         ].map(s => (
           <div key={s.label} className="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 flex items-center gap-4">
             <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
@@ -644,21 +652,21 @@ export default function SettingPage() {
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
               <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
                 <p className="text-sm font-semibold text-gray-700">
-                  {translate('All Taxes', language)} <span className="text-gray-400 font-normal ml-1">({taxes.meta.total})</span>
+                  {translate('All Taxes', language)} <span className="text-gray-400 font-normal ml-1">({taxMeta.total})</span>
                 </p>
-                <button onClick={() => dispatch(fetchTaxes({ page: taxPage, per_page: 15 }))}
+                <button onClick={() => refetchTaxes()}
                   className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
-                  <MdRefresh size={16} className="text-gray-400"/>
+                  <MdRefresh size={16} className={`text-gray-400 ${taxesLoading ? 'animate-spin' : ''}`}/>
                 </button>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <TableHead headers={[translate('Name',language), translate('Rate (%)',language), translate('Status',language), translate('Actions',language)]}/>
                   <tbody>
-                    {taxStatus === 'loading' ? <SkeletonRow cols={4}/> :
-                     taxes.data.length === 0
+                    {taxesLoading ? <SkeletonRow cols={4}/> :
+                     taxes.length === 0
                        ? <tr><td colSpan={4} className="px-5 py-14 text-center text-gray-400 text-sm">{translate('No taxes found.', language)}</td></tr>
-                       : taxes.data.map((t, i) => (
+                       : taxes.map((t, i) => (
                           <motion.tr key={t.id}
                             initial={{opacity:0,y:5}} animate={{opacity:1,y:0}}
                             transition={{delay:i*0.03}}
@@ -679,7 +687,7 @@ export default function SettingPage() {
                   </tbody>
                 </table>
               </div>
-              <Pagination meta={taxes.meta} onPage={setTaxPage} language={language}/>
+              <Pagination meta={taxMeta} onPage={setTaxPage} language={language}/>
             </div>
           </motion.div>
         )}
@@ -702,21 +710,21 @@ export default function SettingPage() {
               <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
                 <p className="text-sm font-semibold text-gray-700">
                   {translate('Global Discounts', language)}
-                  <span className="text-gray-400 font-normal ml-1">({globalDiscounts.meta.total})</span>
+                  <span className="text-gray-400 font-normal ml-1">({globalMeta.total})</span>
                 </p>
-                <button onClick={() => dispatch(fetchGlobalDiscounts({ page: globalPage, per_page:15 }))}
+                <button onClick={() => refetchGlobal()}
                   className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
-                  <MdRefresh size={16} className="text-gray-400"/>
+                  <MdRefresh size={16} className={`text-gray-400 ${globalLoading ? 'animate-spin' : ''}`}/>
                 </button>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <TableHead headers={[translate('Name',language),translate('Value (%)',language),translate('Room',language),translate('Validity',language),translate('Status',language),translate('Desc',language),translate('Actions',language)]}/>
                   <tbody>
-                    {globalStatus === 'loading' ? <SkeletonRow cols={7}/> :
-                     globalDiscounts.data.length === 0
+                    {globalLoading ? <SkeletonRow cols={7}/> :
+                     globalDiscounts.length === 0
                        ? <tr><td colSpan={7} className="px-5 py-14 text-center text-gray-400 text-sm">{translate('No global discounts found.', language)}</td></tr>
-                       : globalDiscounts.data.map((g, i) => (
+                       : globalDiscounts.map((g, i) => (
                           <motion.tr key={g.id}
                             initial={{opacity:0,y:5}} animate={{opacity:1,y:0}}
                             transition={{delay:i*0.03}}
@@ -752,7 +760,7 @@ export default function SettingPage() {
                   </tbody>
                 </table>
               </div>
-              <Pagination meta={globalDiscounts.meta} onPage={setGlobalPage} language={language}/>
+              <Pagination meta={globalMeta} onPage={setGlobalPage} language={language}/>
             </div>
           </motion.div>
         )}
@@ -782,21 +790,21 @@ export default function SettingPage() {
               <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
                 <p className="text-sm font-semibold text-gray-700">
                   {translate('Category Discounts', language)}
-                  <span className="text-gray-400 font-normal ml-1">({categoryDiscounts.meta.total})</span>
+                  <span className="text-gray-400 font-normal ml-1">({categoryMeta.total})</span>
                 </p>
-                <button onClick={() => dispatch(fetchCategoryDiscounts({ page: catPage, per_page:15 }))}
+                <button onClick={() => refetchCat()}
                   className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
-                  <MdRefresh size={16} className="text-gray-400"/>
+                  <MdRefresh size={16} className={`text-gray-400 ${catLoading ? 'animate-spin' : ''}`}/>
                 </button>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <TableHead headers={[translate('Name',language),translate('Category',language),translate('Room',language),translate('Value (%)',language),translate('Validity',language),translate('Status',language),translate('Actions',language)]}/>
                   <tbody>
-                    {categoryStatus === 'loading' ? <SkeletonRow cols={7}/> :
-                     categoryDiscounts.data.length === 0
+                    {catLoading ? <SkeletonRow cols={7}/> :
+                     categoryDiscounts.length === 0
                        ? <tr><td colSpan={7} className="px-5 py-14 text-center text-gray-400 text-sm">{translate('No category discounts found.', language)}</td></tr>
-                       : categoryDiscounts.data.map((cd, i) => (
+                       : categoryDiscounts.map((cd, i) => (
                           <motion.tr key={cd.id}
                             initial={{opacity:0,y:5}} animate={{opacity:1,y:0}}
                             transition={{delay:i*0.03}}

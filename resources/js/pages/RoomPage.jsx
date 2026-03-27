@@ -9,9 +9,9 @@ import {
 import { BsBuildingsFill } from 'react-icons/bs';
 import { FaLayerGroup }    from 'react-icons/fa';
 import {
-  fetchCategories, fetchAllCategories, createCategory, updateCategory, deleteCategory,
-  fetchRooms, createRoom, updateRoom, deleteRoom, clearErrors,
-} from '../store/slices/roomSlice';
+  useGetRoomsQuery, useCreateRoomMutation, useUpdateRoomMutation, useDeleteRoomMutation,
+  useGetCategoriesQuery, useGetAllCategoriesQuery, useCreateCategoryMutation, useUpdateCategoryMutation, useDeleteCategoryMutation,
+} from '../store/api/roomApi';
 import { useTranslate, formatPrice } from '../utils/localeHelper';
 
 /* ─── constants ─────────────────────────────── */
@@ -473,14 +473,11 @@ function RoomForm({ initial, categories = [], onSave, onCancel, loading }) {
 export default function RoomPage() {
   const dispatch = useDispatch();
   const t = useTranslate();
-  const { language, currency } = useSelector(state => state.locale);
-  const {
-    categories, allCategories, categoryMeta, categoryStatus,
-    rooms, roomMeta, roomStatus,
-    actionLoading,
-  } = useSelector(s => s.room);
+  const { currency } = useSelector(state => state.locale);
 
   const [tab,            setTab]           = useState('rooms');        // 'rooms' | 'categories'
+  const [catQ,           setCatQ]          = useState('');
+  const [roomQ,          setRoomQ]         = useState('');
   const [catSearch,      setCatSearch]     = useState('');
   const [roomSearch,     setRoomSearch]    = useState('');
   const [catPage,        setCatPage]       = useState(1);
@@ -492,30 +489,27 @@ export default function RoomPage() {
   const [deleteCat,      setDeleteCat]     = useState(null);
   const [deleteRm,       setDeleteRm]      = useState(null);
 
-  /* Load data */
-  useEffect(() => {
-    dispatch(fetchCategories({ search: catSearch, page: catPage, per_page: 15 }));
-  }, [catSearch, catPage, dispatch]);
+  /* RTK Query Hooks */
+  const { data: roomsData, isFetching: roomsLoading, refetch: refetchRooms } = useGetRoomsQuery({ search: roomSearch, page: roomPage, per_page: 15 });
+  const { data: catsData, isFetching: catsLoading, refetch: refetchCats } = useGetCategoriesQuery({ search: catSearch, page: catPage, per_page: 15 });
+  const { data: allCategories = [] } = useGetAllCategoriesQuery(undefined, { skip: !showRoomForm && tab !== 'rooms' });
 
-  useEffect(() => {
-    dispatch(fetchRooms({ search: roomSearch, page: roomPage, per_page: 15 }));
-  }, [roomSearch, roomPage, dispatch]);
+  const [createRoomFn, { isLoading: creatingRoom }] = useCreateRoomMutation();
+  const [updateRoomFn, { isLoading: updatingRoom }] = useUpdateRoomMutation();
+  const [deleteRoomFn, { isLoading: deletingRoom }] = useDeleteRoomMutation();
 
-  // Fetch dropdown categories on mount AND whenever room form opens
-  useEffect(() => {
-    dispatch(fetchAllCategories());
-  }, [dispatch]);
+  const [createCatFn, { isLoading: creatingCat }] = useCreateCategoryMutation();
+  const [updateCatFn, { isLoading: updatingCat }] = useUpdateCategoryMutation();
+  const [deleteCatFn, { isLoading: deletingCat }] = useDeleteCategoryMutation();
 
-  // Re-fetch when form opens to ensure fresh data
-  useEffect(() => {
-    if (showRoomForm) {
-      dispatch(fetchAllCategories());
-    }
-  }, [showRoomForm, dispatch]);
+  const rooms     = roomsData?.data || [];
+  const roomMeta  = roomsData?.meta || { current_page: 1, last_page: 1, per_page: 15, total: 0 };
+  const categories    = catsData?.data || [];
+  const categoryMeta  = catsData?.meta || { current_page: 1, last_page: 1, per_page: 15, total: 0 };
+  
+  const actionLoading = creatingRoom || updatingRoom || deletingRoom || creatingCat || updatingCat || deletingCat;
 
   /* Debounced search */
-  const [catQ,  setCatQ]  = useState('');
-  const [roomQ, setRoomQ] = useState('');
   useEffect(() => {
     const t_timer = setTimeout(() => { setCatSearch(catQ); setCatPage(1); }, 400);
     return () => clearTimeout(t_timer);
@@ -527,26 +521,24 @@ export default function RoomPage() {
 
   /* Handlers — Categories */
   const handleSaveCat = async (form) => {
-    const action = editCat
-      ? dispatch(updateCategory({ id: editCat.id, ...form }))
-      : dispatch(createCategory(form));
-    const res = await action;
-    if (res.meta.requestStatus === 'fulfilled') {
+    try {
+      const res = editCat
+        ? await updateCatFn({ id: editCat.id, ...form }).unwrap()
+        : await createCatFn(form).unwrap();
+      
       toast.success(editCat ? t('Updated successfully!') : t('Created successfully!'));
       setShowCatForm(false); setEditCat(null);
-    } else {
-      toast.error(res.payload || t('Something went wrong'));
+    } catch (err) {
+      toast.error(err?.data?.message || t('Something went wrong'));
     }
   };
 
   const handleDeleteCat = async () => {
-    const res = await dispatch(deleteCategory(deleteCat.id));
-    if (res.meta.requestStatus === 'fulfilled') {
+    try {
+      await deleteCatFn(deleteCat.id).unwrap();
       toast.success(t('Deleted permanently!'));
-      // Re-fetch to sync table
-      dispatch(fetchCategories({ search: catSearch, page: catPage, per_page: 15 }));
-    } else {
-      toast.error(res.payload || t('Cannot delete'));
+    } catch (err) {
+      toast.error(err?.data?.message || t('Cannot delete'));
     }
     setDeleteCat(null);
   };
@@ -554,8 +546,6 @@ export default function RoomPage() {
   /* Handlers — Rooms */
   const handleSaveRoom = async (roomData) => {
     const formData = new FormData();
-    
-    // Append basic fields
     formData.append('room_number', roomData.room_number);
     formData.append('category_id', roomData.category_id);
     formData.append('base_price', roomData.base_price);
@@ -563,49 +553,31 @@ export default function RoomPage() {
     formData.append('floor', roomData.floor);
     formData.append('status', roomData.status);
 
-    // Append features (as array)
-    roomData.features.forEach((f) => {
-      formData.append('features[]', f);
-    });
-
-    // Append existing images to keep
-    roomData.existing_images.forEach((path) => {
-      formData.append('existing_images[]', path);
-    });
-
-    // Append new images (if any)
-    if (roomData.new_images && roomData.new_images.length > 0) {
-      roomData.new_images.forEach((img) => {
-        formData.append('new_images[]', img);
-      });
+    roomData.features.forEach(f => formData.append('features[]', f));
+    roomData.existing_images.forEach(path => formData.append('existing_images[]', path));
+    if (roomData.new_images) {
+      roomData.new_images.forEach(img => formData.append('new_images[]', img));
     }
 
-    const action = editRoom
-      ? dispatch(updateRoom({ id: editRoom.id, payload: formData }))
-      : dispatch(createRoom(formData));
-    
-    // Important: we wrap formData in updateRoom payload but it's an instance of FormData
-    // The thunk has been updated to handle this.
-    
-    const res = await action;
-    if (res.meta.requestStatus === 'fulfilled') {
+    try {
+      if (editRoom) {
+        await updateRoomFn({ id: editRoom.id, payload: formData }).unwrap();
+      } else {
+        await createRoomFn(formData).unwrap();
+      }
       toast.success(editRoom ? t('Updated successfully!') : t('Created successfully!'));
       setShowRoomForm(false); setEditRoom(null);
-      // Re-fetch to sync
-      dispatch(fetchRooms({ search: roomSearch, page: roomPage, per_page: 15 }));
-    } else {
-      toast.error(res.payload || t('Something went wrong'));
+    } catch (err) {
+      toast.error(err?.data?.message || t('Something went wrong'));
     }
   };
 
   const handleDeleteRoom = async () => {
-    const res = await dispatch(deleteRoom(deleteRm.id));
-    if (res.meta.requestStatus === 'fulfilled') {
+    try {
+      await deleteRoomFn(deleteRm.id).unwrap();
       toast.success(t('Deleted permanently!'));
-      // Re-fetch to sync table
-      dispatch(fetchRooms({ search: roomSearch, page: roomPage, per_page: 15 }));
-    } else {
-      toast.error(res.payload || t('Cannot delete'));
+    } catch (err) {
+      toast.error(err?.data?.message || t('Cannot delete'));
     }
     setDeleteRm(null);
   };
@@ -697,7 +669,7 @@ export default function RoomPage() {
                   <MdRefresh
                     size={16}
                     className="cursor-pointer hover:text-gray-600 transition-colors"
-                    onClick={() => dispatch(fetchRooms({ search: roomSearch, page: roomPage }))}
+                    onClick={() => refetchRooms()}
                   />
                   {roomMeta.total} {t('rooms')}
                 </div>
@@ -714,7 +686,7 @@ export default function RoomPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {roomStatus === 'loading' ? (
+                    {roomsLoading ? (
                       <SkeletonRow cols={9}/>
                     ) : rooms.length === 0 ? (
                       <tr><td colSpan={9} className="px-5 py-16 text-center text-gray-400 text-sm">{t('No rooms found.')}</td></tr>
@@ -827,7 +799,7 @@ export default function RoomPage() {
                   <MdRefresh
                     size={16}
                     className="cursor-pointer hover:text-gray-600 transition-colors"
-                    onClick={() => dispatch(fetchCategories({ search: catSearch, page: catPage }))}
+                    onClick={() => refetchCats()}
                   />
                   {categoryMeta.total} {t('categories')}
                 </div>
@@ -843,7 +815,7 @@ export default function RoomPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {categoryStatus === 'loading' ? (
+                    {catsLoading ? (
                       <SkeletonRow cols={5}/>
                     ) : categories.length === 0 ? (
                       <tr><td colSpan={5} className="px-5 py-16 text-center text-gray-400 text-sm">{t('No categories found.')}</td></tr>

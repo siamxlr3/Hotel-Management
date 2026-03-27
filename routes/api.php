@@ -53,6 +53,7 @@ Route::middleware('api')->group(function () {
     Route::apiResource('room-categories', RoomCategoryController::class);
 
     // Rooms
+    Route::put('rooms/{room}/status', [RoomController::class, 'updateStatus']);
     Route::apiResource('rooms', RoomController::class);
 
     // Dropdown endpoint
@@ -99,6 +100,7 @@ Route::middleware('api')->group(function () {
     Route::post('reservations/{id}/cancel', [ReservationController::class, 'cancelReservation']);
     Route::get('reservations/{reservation}/invoice', [ReservationController::class, 'downloadInvoice']);
     Route::get('reservations/checkouts', [ReservationController::class, 'checkouts']);
+    Route::get('reservations/active/{roomId}', [ReservationController::class, 'getActiveReservation']);
     Route::apiResource('reservations', ReservationController::class);
 
     // Staff Management

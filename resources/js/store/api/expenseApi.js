@@ -23,6 +23,7 @@ export const expenseApi = createApi({
     getExpenseSummary: builder.query({
       query: (params) => ({ url: '/expenses/summary', params }),
       providesTags: [{ type: 'Summary', id: 'EXPENSE' }],
+      transformResponse: (res) => res?.data || res,
     }),
     getHotelInfo: builder.query({
       query: () => '/expenses/hotel-info',

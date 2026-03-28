@@ -35,10 +35,13 @@ class ReportService
         $endMonth = $end->month;
         $endYear = $end->year;
         
-        $totalPayroll = Payroll::whereBetween('year', [$startYear, $endYear])
-            // This is a simplification. A perfect date check might require careful month parsing.
+        $payrollRecords = Payroll::whereBetween('year', [$startYear, $endYear])
             ->whereIn('month', $this->getMonthsBetween($start, $end))
-            ->sum(DB::raw('net_salary + bonus - deduction'));
+            ->get();
+
+        $totalPayroll = $payrollRecords->sum(function($p) {
+            return (float)$p->net_salary + (float)$p->bonus - (float)$p->deduction;
+        });
             
         $totalExpense = $totalExpenseItems + $totalPayroll;
         $profitMargin = $totalRevenue - $totalExpense;
@@ -95,10 +98,29 @@ class ReportService
         $expenseRaw = Expense::select('date', DB::raw('SUM(grand_total) as expense'))
             ->whereBetween('date', [$start->format('Y-m-d'), $end->format('Y-m-d')])
             ->groupBy('date')
-            ->pluck('expense', 'date');
+            ->pluck('expense', 'date')
+            ->toArray();
+
+        // 4.1 Incorporate Payroll into daily expenses for the chart
+        foreach ($payrollRecords as $p) {
+            $amount = (float)$p->net_salary + (float)$p->bonus - (float)$p->deduction;
+            if ($amount <= 0) continue;
+
+            // Determine which date to attribute this payroll to in the chart
+            // We'll use the paid_at date if it's within $start/$end, 
+            // otherwise the 1st of the month if it's within $start/$end,
+            // otherwise just the $start date (to ensure it's captured in the visible chart sum).
+            $pDate = $p->paid_at ? Carbon::parse($p->paid_at) : Carbon::parse("1 {$p->month} {$p->year}");
+            
+            $targetDate = $pDate->isBetween($start, $end) 
+                ? $pDate->format('Y-m-d') 
+                : $start->format('Y-m-d');
+
+            $expenseRaw[$targetDate] = ($expenseRaw[$targetDate] ?? 0) + $amount;
+        }
             
         // We'll merge these by date.
-        $datesCollection = collect(array_keys($revenueRaw->toArray()))->merge(array_keys($expenseRaw->toArray()))->unique()->sort();
+        $datesCollection = collect(array_keys($revenueRaw->toArray()))->merge(array_keys($expenseRaw))->unique()->sort();
         
         $revenueData = $datesCollection->map(function ($date) use ($revenueRaw, $expenseRaw) {
             return [

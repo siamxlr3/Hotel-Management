@@ -441,7 +441,7 @@ const StaffPage = () => {
               <tr className="border-b border-gray-100 bg-gray-50/60">
                 {activeTab === 'staff' && [t('Staff Name'), t('Role/Shift'), t('NID Number'), t('Address'), t('Salary'), t('Joined'), t('Status'), t('Actions')].map(h => <th key={h} className="text-left px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{h}</th>)}
                 {activeTab === 'attendance' && [t('Staff'), t('Date'), t('Time Details'), t('Status'), t('Actions')].map(h => <th key={h} className="text-left px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{h}</th>)}
-                {activeTab === 'leaves' && [t('Staff'), t('Leave Type'), t('Period'), t('Status'), t('Actions')].map(h => <th key={h} className="text-left px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{h}</th>)}
+                {activeTab === 'leaves' && [t('Staff'), t('Leave Type'), t('Period'), t('Reason'), t('Status'), t('Actions')].map(h => <th key={h} className="text-left px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{h}</th>)}
                 {activeTab === 'payroll' && [t('Staff'), t('Date'), t('Period'), t('Amount Details'), t('Status'), t('Actions')].map(h => <th key={h} className="text-left px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{h}</th>)}
                 {['shifts', 'roles', 'leave-types'].includes(activeTab) && [t('Name'), t('Details'), t('Status'), t('Actions')].map(h => <th key={h} className="text-left px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{h}</th>)}
               </tr>
@@ -516,6 +516,11 @@ const StaffPage = () => {
                         <td className="px-5 py-4 text-xs font-semibold text-blue-600">{item.leave_type?.name}</td>
                         <td className="px-5 py-4 text-[11px] text-gray-500 whitespace-nowrap font-medium">
                           {new Date(item.start_date).toLocaleDateString(language === 'BAN' ? 'bn-BD' : 'en-US')} - {new Date(item.end_date).toLocaleDateString(language === 'BAN' ? 'bn-BD' : 'en-US')}
+                        </td>
+                        <td className="px-5 py-4">
+                           <div className="max-w-[150px] truncate text-xs text-gray-500 font-medium" title={item.reason}>
+                             {item.reason || '—'}
+                           </div>
                         </td>
                       </>
                     )}

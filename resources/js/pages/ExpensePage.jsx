@@ -21,7 +21,7 @@ import ExpenseInvoicePDF from '../components/expense/ExpenseInvoicePDF';
 import { useTranslate, formatPrice } from '../utils/localeHelper';
 
 /* ── Constants ── */
-const CATEGORIES = ['Kg', 'Lt', 'Box', 'Packet', 'Carton'];
+const CATEGORIES = ['Kg', 'Lt', 'Box', 'Packet', 'Carton', 'Piece'];
 
 const SLIDE = {
   initial: { opacity: 0, y: -16 },
@@ -679,22 +679,22 @@ export default function ExpensePage() {
 
         {/* Table */}
         <div className="overflow-x-auto">
-          <table className="w-full text-sm table-fixed min-w-[1500px]">
+          <table className="w-full text-sm table-fixed min-w-[1800px]">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/60">
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[140px]">{t('Transaction ID')}</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[180px]">{t('Supplier')}</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[150px]">{t('Contact')}</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[130px]">{t('Phone')}</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[200px]">{t('Address')}</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[150px]">{t('Items')}</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[80px]">{t('Qty')}</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[100px]">{t('Category')}</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[120px]">{t('Unit Price')}</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[120px]">{t('Total')}</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[120px]">{t('Date')}</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[120px]">{t('Status')}</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[100px] text-center">{t('Actions')}</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[180px]">{t('Transaction ID')}</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[200px]">{t('Supplier')}</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[180px]">{t('Contact')}</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[150px]">{t('Phone')}</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[250px]">{t('Address')}</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[200px]">{t('Items')}</th>
+                <th className="text-center px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[100px]">{t('Qty')}</th>
+                <th className="text-center px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[120px]">{t('Category')}</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[150px]">{t('Unit Price')}</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[160px]">{t('Total')}</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[150px]">{t('Date')}</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[130px]">{t('Status')}</th>
+                <th className="text-center px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[120px]">{t('Actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -717,9 +717,9 @@ export default function ExpensePage() {
                     transition={{ delay: i * 0.025 }}
                     className="border-b border-gray-50 hover:bg-gray-50/60 transition-colors">
 
-                    <td className="px-4 py-3.5">
-                      <span className="font-mono text-xs font-semibold text-[#2D3A2E]
-                                      bg-[#E8F5E0] px-2 py-1 rounded-lg">
+                    <td className="px-4 py-3.5 text-left">
+                      <span className="font-mono text-[11px] font-semibold text-[#2D3A2E]
+                                      bg-[#E8F5E0] px-2.5 py-1 rounded-lg">
                         {exp.transaction_id}
                       </span>
                     </td>
@@ -732,7 +732,7 @@ export default function ExpensePage() {
                     <td className="px-4 py-3.5 text-gray-500 text-xs whitespace-nowrap">
                       {exp.phone || '—'}
                     </td>
-                    <td className="px-4 py-3.5 text-gray-500 text-xs max-w-[120px]">
+                    <td className="px-4 py-3.5 text-gray-500 text-xs max-w-[220px]">
                       <p className="truncate" title={exp.address}>{exp.address || '—'}</p>
                     </td>
                     <td className="px-4 py-3.5 text-gray-600 max-w-[140px]">
@@ -777,8 +777,8 @@ export default function ExpensePage() {
                     <td className="px-4 py-3.5">
                       <StatusBadge status={exp.status}/>
                     </td>
-                    <td className="px-4 py-3.5">
-                      <div className="flex items-center gap-1">
+                    <td className="px-4 py-3.5 text-center">
+                      <div className="flex items-center justify-center gap-1">
                         {/* Edit */}
                         <button onClick={() => openEdit(exp)}
                           className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-400

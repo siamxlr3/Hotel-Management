@@ -141,8 +141,8 @@ const styles = StyleSheet.create({
 const ExpenseInvoicePDF = ({ expense, hotelInfo }) => {
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     }).format(amount || 0);
   };
 
@@ -179,12 +179,14 @@ const ExpenseInvoicePDF = ({ expense, hotelInfo }) => {
           <View style={styles.row}>
             <Text style={styles.label}>Contact Person:</Text>
             <Text style={styles.value}>{expense.contact_person || 'N/A'}</Text>
-            <Text style={styles.label}>Phone:</Text>
-            <Text style={styles.value}>{expense.phone || 'N/A'}</Text>
           </View>
           <View style={styles.row}>
             <Text style={styles.label}>Address:</Text>
             <Text style={styles.value}>{expense.address || 'N/A'}</Text>
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.label}>Phone:</Text>
+            <Text style={styles.value}>{expense.phone || 'N/A'}</Text>
           </View>
         </View>
 

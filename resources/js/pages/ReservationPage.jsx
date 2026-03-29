@@ -233,10 +233,12 @@ export default function ReservationPage() {
     setActiveReservation(null);
     setActiveReservationRoomId(null);
     
-    // Reset Form
-    const today = new Date().toISOString().split('T')[0];
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    // Reset Form Date Defaults (Strictly Local)
+    const getLocalDateString = (d) => new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+    const today = getLocalDateString(new Date());
+    const tmrw = new Date();
+    tmrw.setDate(tmrw.getDate() + 1);
+    const tomorrow = getLocalDateString(tmrw);
     
     // Calculate discounted price for this room
     const activeGlobalDiscount = globalDiscountsData?.data?.find(d => d.status === 'Active' && (!d.room_id || d.room_id === room.id))?.value || 0;
@@ -252,7 +254,7 @@ export default function ReservationPage() {
     setForm({
       guest_name: '', guest_phone: '', guest_email: '',
       identity_type: 'NID', identity_number: '',
-      person_count: 1, check_in: today, check_out: tomorrow.toISOString().split('T')[0],
+      person_count: 1, check_in: today, check_out: tomorrow,
       payment_method: 'Cash', subtotal: discountedPrice, tax_percent: totalTaxRate,
       global_discount_percent: activeGlobalDiscount, category_discount_percent: activeCategoryDiscount,
       base_nightly_rate: discountedPrice 

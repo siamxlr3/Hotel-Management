@@ -8,7 +8,7 @@ return new class extends Migration {
     {
         Schema::create('home_gallery_images', function (Blueprint $table) {
             $table->id();
-            $table->json('gallery')->default('[]');  // array of image paths
+            $table->json('gallery')->nullable();  // array of image paths
             $table->timestamps();
         });
     }

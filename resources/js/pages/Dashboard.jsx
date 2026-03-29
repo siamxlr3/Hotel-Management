@@ -12,14 +12,19 @@ import toast, { Toaster } from 'react-hot-toast';
 
 export default function Dashboard() {
   const { language, currency } = useSelector(state => state.locale);
-  // Date filtering state (default to current month)
+  // Helper to format local date as YYYY-MM-DD reliably
+  const getLocalDateString = (d) => {
+    return new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+  };
+
+  // Date filtering state (default to current month, strictly in local timezone)
   const [fromDate, setFromDate] = useState(() => {
     const d = new Date();
     d.setMonth(d.getMonth() - 1);
-    return d.toISOString().split('T')[0];
+    return getLocalDateString(d);
   });
   
-  const [toDate, setToDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [toDate, setToDate] = useState(() => getLocalDateString(new Date()));
 
   const { data: response, isLoading, isFetching, error, refetch } = useGetDashboardReportQuery({
     from_date: fromDate,

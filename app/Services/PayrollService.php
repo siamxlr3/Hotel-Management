@@ -12,6 +12,22 @@ class PayrollService
     {
         $query = Payroll::with('staff.role');
 
+        if (!empty($filters['search'])) {
+            $search = $filters['search'];
+            $query->whereHas('staff', function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('staff_code', 'like', "%{$search}%");
+            });
+        }
+
+        if (!empty($filters['date_from'])) {
+            $query->whereDate('created_at', '>=', $filters['date_from']);
+        }
+
+        if (!empty($filters['date_to'])) {
+            $query->whereDate('created_at', '<=', $filters['date_to']);
+        }
+
         if (!empty($filters['staff_id'])) {
             $query->where('staff_id', $filters['staff_id']);
         }
@@ -64,6 +80,22 @@ class PayrollService
     public function getSummary(array $filters): array
     {
         $query = Payroll::query();
+
+        if (!empty($filters['search'])) {
+            $search = $filters['search'];
+            $query->whereHas('staff', function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('staff_code', 'like', "%{$search}%");
+            });
+        }
+
+        if (!empty($filters['date_from'])) {
+            $query->whereDate('created_at', '>=', $filters['date_from']);
+        }
+
+        if (!empty($filters['date_to'])) {
+            $query->whereDate('created_at', '<=', $filters['date_to']);
+        }
 
         if (!empty($filters['month'])) {
             $query->where('month', $filters['month']);

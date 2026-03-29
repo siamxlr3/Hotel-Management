@@ -5,6 +5,7 @@ import toast, { Toaster } from 'react-hot-toast';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import ReservationInvoicePDF from '../components/reservation/ReservationInvoicePDF';
 import { useGetReservationsQuery } from '../store/api/reservationApi';
+import { useGetTaxesQuery } from '../store/api/settingApi';
 import { useGetHomeQuery, useGetContactQuery } from '../store/api/cmsApi';
 import { translate, formatPrice, translateDigits } from '../utils/localeHelper';
 
@@ -53,6 +54,10 @@ export default function CheckInPage() {
 
   const reservations = reservationData?.data || [];
   const reservationMeta = reservationData?.meta;
+  
+  // RTK Query: Settings
+  const { data: taxesData } = useGetTaxesQuery({ status: 'Active' });
+  const activeTaxes = taxesData?.data?.filter(t => t.status === 'Active') || [];
   
   // RTK Query: CMS Branding
   const { data: cmsHomeData } = useGetHomeQuery();
@@ -165,7 +170,25 @@ export default function CheckInPage() {
                         <td className="p-4 text-[11px] font-medium text-gray-500 uppercase tracking-wide">
                            <div className="grid grid-cols-[45px_1fr] gap-x-2 gap-y-1 w-32">
                              <span className="text-gray-400">Base</span><span>{formatPrice(res.subtotal, currency)}</span>
-                             <span className="text-gray-400">Tax</span><span>+{formatPrice(res.tax_amount, currency)}</span>
+                             {activeTaxes.length > 0 && res.tax_amount > 0 ? (
+                               activeTaxes.map((tax, idx) => {
+                                 const totalActiveRate = activeTaxes.reduce((sum, t) => sum + Number(t.rate), 0);
+                                 const proportionalTax = totalActiveRate > 0 
+                                     ? Number(res.tax_amount) * (Number(tax.rate) / totalActiveRate) 
+                                     : 0;
+                                 return (
+                                   <React.Fragment key={idx}>
+                                     <span className="text-gray-400 truncate" title={tax.name}>{tax.name}</span>
+                                     <span>+{formatPrice(proportionalTax, currency)}</span>
+                                   </React.Fragment>
+                                 );
+                               })
+                             ) : (
+                               <>
+                                 <span className="text-gray-400 truncate" title="Tax">Tax ({res.tax_percent}%)</span>
+                                 <span>+{formatPrice(res.tax_amount, currency)}</span>
+                               </>
+                             )}
                              <span className="text-gray-400">Disc</span><span className="text-red-400">-{formatPrice(res.discount_amount, currency)}</span>
                              <span className="text-gray-900 font-black mt-1">Total</span><span className="text-[#2D3A2E] text-sm font-black mt-0.5 tracking-tight">{formatPrice(res.total_amount, currency)}</span>
                            </div>
@@ -181,7 +204,7 @@ export default function CheckInPage() {
                         <td className="p-4 pr-6 text-center align-middle">
                           {res.status === 'Paid' ? (
                             <PDFDownloadLink
-                               document={<ReservationInvoicePDF reservation={res} hotelInfo={hotelInfo} />}
+                               document={<ReservationInvoicePDF reservation={res} hotelInfo={hotelInfo} activeTaxes={activeTaxes} />}
                                fileName={`invoice-${res.transaction_id}.pdf`}
                             >
                                 {({ loading }) => (

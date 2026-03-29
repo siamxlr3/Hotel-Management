@@ -40,14 +40,13 @@ const styles = StyleSheet.create({
   summaryBox: { width: 220, backgroundColor: '#f8fafc', padding: 15, borderRadius: 4 },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 },
   totalRow: {
-    flexDirection: 'row', justifyContent: 'space-between', marginTop: 10,
-    paddingTop: 10, borderTopWidth: 1, borderTopColor: '#e2e8f0'
+    flexDirection: 'row', justifyContent: 'space-between'
   },
   totalLabel: { fontSize: 12, fontWeight: 'bold', color: '#1e40af' },
   totalValue: { fontSize: 12, fontWeight: 'bold', color: '#1e40af' }
 });
 
-const ReservationInvoicePDF = ({ reservation, hotelInfo }) => {
+const ReservationInvoicePDF = ({ reservation, hotelInfo, activeTaxes = [] }) => {
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount || 0);
   };
@@ -123,24 +122,31 @@ const ReservationInvoicePDF = ({ reservation, hotelInfo }) => {
                 <Text style={styles.col3}>- {formatCurrency(discountApplied)}</Text>
               </View>
             )}
-            <View style={styles.tableRow}>
-              <Text style={styles.col1}>Taxes ({Number(reservation.tax_percent)}%)</Text>
-              <Text style={styles.col3}>{formatCurrency(reservation.tax_amount)}</Text>
-            </View>
+            {activeTaxes && activeTaxes.length > 0 && Number(reservation.tax_amount) > 0 ? (
+               activeTaxes.map((tax, idx) => {
+                 const totalActiveRate = activeTaxes.reduce((sum, t) => sum + Number(t.rate), 0);
+                 const proportionalTax = totalActiveRate > 0 
+                     ? Number(reservation.tax_amount) * (Number(tax.rate) / totalActiveRate) 
+                     : 0;
+                 return (
+                   <View key={idx} style={styles.tableRow}>
+                     <Text style={styles.col1}>{tax.name} ({Number(tax.rate)}%)</Text>
+                     <Text style={styles.col3}>{formatCurrency(proportionalTax)}</Text>
+                   </View>
+                 );
+               })
+            ) : (
+               <View style={styles.tableRow}>
+                 <Text style={styles.col1}>Taxes ({Number(reservation.tax_percent)}%)</Text>
+                 <Text style={styles.col3}>{formatCurrency(reservation.tax_amount)}</Text>
+               </View>
+            )}
           </View>
         </View>
 
         {/* Summary Box */}
         <View style={styles.summarySection}>
           <View style={styles.summaryBox}>
-            <View style={styles.summaryRow}>
-              <Text style={{color: '#666'}}>Subtotal:</Text>
-              <Text>{formatCurrency(reservation.subtotal)}</Text>
-            </View>
-            <View style={styles.summaryRow}>
-              <Text style={{color: '#666'}}>Total Taxes:</Text>
-              <Text>{formatCurrency(reservation.tax_amount)}</Text>
-            </View>
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>GRAND TOTAL:</Text>
               <Text style={styles.totalValue}>{formatCurrency(reservation.total_amount)}</Text>

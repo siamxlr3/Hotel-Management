@@ -67,10 +67,19 @@
                 <td>Accommodation ({{ \Carbon\Carbon::parse($reservation->check_in)->diffInDays(\Carbon\Carbon::parse($reservation->check_out)) ?: 1 }} nights)</td>
                 <td style="text-align: right;">${{ number_format($reservation->subtotal, 2) }}</td>
             </tr>
-            <tr>
-                <td style="text-align: right; color: #666;">Taxes ({{ (float)$reservation->tax_percent }}%)</td>
-                <td style="text-align: right; color: #666;">${{ number_format($reservation->tax_amount, 2) }}</td>
-            </tr>
+            @if(isset($activeTaxes) && count($activeTaxes) > 0)
+                @foreach($activeTaxes as $tax)
+                    <tr>
+                        <td style="text-align: right; color: #666;">{{ $tax->name }} ({{ (float)$tax->rate }}%)</td>
+                        <td style="text-align: right; color: #666;">${{ number_format($reservation->subtotal * ($tax->rate / 100), 2) }}</td>
+                    </tr>
+                @endforeach
+            @else
+                <tr>
+                    <td style="text-align: right; color: #666;">Taxes ({{ (float)$reservation->tax_percent }}%)</td>
+                    <td style="text-align: right; color: #666;">${{ number_format($reservation->tax_amount, 2) }}</td>
+                </tr>
+            @endif
             @if($reservation->discount_amount > 0)
             <tr>
                 <td style="text-align: right; color: #D32F2F;">Discount</td>

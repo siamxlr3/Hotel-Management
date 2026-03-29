@@ -11,6 +11,14 @@ class AttendanceService
     {
         $query = Attendance::with('staff');
 
+        if (!empty($filters['search'])) {
+            $search = $filters['search'];
+            $query->whereHas('staff', function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('staff_code', 'like', "%{$search}%");
+            });
+        }
+
         if (!empty($filters['staff_id'])) {
             $query->where('staff_id', $filters['staff_id']);
         }

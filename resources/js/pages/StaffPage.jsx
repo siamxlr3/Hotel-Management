@@ -176,11 +176,11 @@ const StaffPage = () => {
   const { data: staffData, isFetching: staffLoading } = useGetStaffQuery({ search: debouncedSearch, page, ...filters }, { skip: activeTab !== 'staff' });
   const { data: shiftData, isFetching: shiftLoading } = useGetShiftsQuery({ search: debouncedSearch, page }, { skip: activeTab !== 'shifts' });
   const { data: roleData, isFetching: roleLoading } = useGetRolesQuery({ search: debouncedSearch, page }, { skip: activeTab !== 'roles' });
-  const { data: attendanceData, isFetching: attendanceLoading } = useGetAttendancesQuery({ page, ...filters }, { skip: activeTab !== 'attendance' });
+  const { data: attendanceData, isFetching: attendanceLoading } = useGetAttendancesQuery({ search: debouncedSearch, page, ...filters }, { skip: activeTab !== 'attendance' });
   const { data: leaveTypeData, isFetching: leaveTypeLoading } = useGetLeaveTypesQuery({ search: debouncedSearch, page }, { skip: activeTab !== 'leave-types' });
-  const { data: leaveData, isFetching: leaveLoading } = useGetLeavesQuery({ page, ...filters }, { skip: activeTab !== 'leaves' });
-  const { data: payrollData, isFetching: payrollLoading } = useGetPayrollsQuery({ page, ...filters }, { skip: activeTab !== 'payroll' });
-  const { data: payrollSummary } = useGetPayrollSummaryQuery({ ...filters }, { skip: activeTab !== 'payroll' });
+  const { data: leaveData, isFetching: leaveLoading } = useGetLeavesQuery({ search: debouncedSearch, page, ...filters }, { skip: activeTab !== 'leaves' });
+  const { data: payrollData, isFetching: payrollLoading } = useGetPayrollsQuery({ search: debouncedSearch, page, ...filters }, { skip: activeTab !== 'payroll' });
+  const { data: payrollSummary } = useGetPayrollSummaryQuery({ search: debouncedSearch, ...filters }, { skip: activeTab !== 'payroll' });
   
   // CMS Queries for Branding
   const { data: cmsHomeData } = useGetHomeQuery();

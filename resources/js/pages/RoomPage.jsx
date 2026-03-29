@@ -407,48 +407,45 @@ function RoomForm({ initial, categories = [], onSave, onCancel, loading }) {
             </div>
           </div>
 
-          {/* Existing Images */}
-          {existingImages.length > 0 && (
-            <div className="grid grid-cols-4 md:grid-cols-6 gap-3">
-              {existingImages.map((path, i) => (
-                <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-gray-100 shadow-sm group/img">
-                  <img src={`/storage/${path}`} className="w-full h-full object-cover" alt="Existing" />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">
-                    <button 
-                      type="button" 
-                      onClick={() => removeExisting(path)}
-                      className="p-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                    >
-                      <MdDelete size={16}/>
-                    </button>
-                  </div>
-                  <div className="absolute top-1 left-1">
-                    <span className="text-[8px] font-bold text-white bg-black/40 px-1.5 py-0.5 rounded uppercase tracking-tighter">Existing</span>
-                  </div>
+          <div className="flex flex-wrap gap-3">
+            {/* Existing Images */}
+            {existingImages.length > 0 && existingImages.map((path, i) => (
+              <div key={`ex-${i}`} className="relative w-24 h-24 shrink-0 rounded-xl overflow-hidden border border-gray-100 shadow-sm group/img">
+                <img src={`/storage/${path}`} className="w-full h-full object-cover" alt="Existing" />
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">
+                  <button 
+                    type="button" 
+                    onClick={() => removeExisting(path)}
+                    className="p-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                  >
+                    <MdDelete size={16}/>
+                  </button>
                 </div>
-              ))}
-            </div>
-          )}
+                <div className="absolute top-1 left-1 bg-black/50 px-1.5 py-0.5 rounded backdrop-blur-sm">
+                  <span className="text-[8px] font-bold text-white uppercase tracking-wider">Existing</span>
+                </div>
+              </div>
+            ))}
 
-          {/* New Previews */}
-          {previews.length > 0 && (
-            <div className="grid grid-cols-4 md:grid-cols-6 gap-3">
-              {previews.map((url, i) => (
-                <div key={url} className="relative aspect-square rounded-xl overflow-hidden border border-gray-100 shadow-sm group/img">
-                  <img src={url} className="w-full h-full object-cover" alt={`Preview ${i}`} />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">
-                    <button 
-                      type="button" 
-                      onClick={() => removeNew(i)}
-                      className="p-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                    >
-                      <MdDelete size={16}/>
-                    </button>
-                  </div>
+            {/* New Previews */}
+            {previews.length > 0 && previews.map((url, i) => (
+              <div key={url} className="relative w-24 h-24 shrink-0 rounded-xl overflow-hidden border border-gray-100 shadow-sm group/img">
+                <img src={url} className="w-full h-full object-cover" alt={`Preview ${i}`} />
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">
+                  <button 
+                    type="button" 
+                    onClick={() => removeNew(i)}
+                    className="p-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                  >
+                    <MdDelete size={16}/>
+                  </button>
                 </div>
-              ))}
-            </div>
-          )}
+                <div className="absolute top-1 left-1 bg-indigo-500/80 px-1.5 py-0.5 rounded backdrop-blur-sm">
+                  <span className="text-[8px] font-bold text-white uppercase tracking-wider">New</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 

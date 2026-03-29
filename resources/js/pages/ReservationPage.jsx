@@ -203,7 +203,9 @@ export default function ReservationPage() {
 
   useEffect(() => {
     if (activeResFromQuery && activeReservationRoomId) {
-      setActiveReservation(activeResFromQuery);
+      if (modalType !== 'downloadReceipt') {
+        setActiveReservation({ ...activeResFromQuery, room: selectedRoom });
+      }
       
       if (modalType === 'paymentForm' || modalType === 'reservedAction') {
         // Sync subtotal if needed
@@ -211,7 +213,7 @@ export default function ReservationPage() {
         if (st) setForm(prev => ({ ...prev, subtotal: st }));
       }
     }
-  }, [activeResFromQuery, activeReservationRoomId, modalType]);
+  }, [activeResFromQuery, activeReservationRoomId, modalType, selectedRoom]);
 
   const hotelInfo = useMemo(() => {
     const cmsHome = cmsHomeData?.[0] || cmsHomeData?.data?.[0];
@@ -244,13 +246,14 @@ export default function ReservationPage() {
     const discountedPrice = Number(room.base_price) - (Number(room.base_price) * (totalDiscountPercent / 100));
 
     // Calculate active tax rate
-    const activeTax = taxesData?.data?.find(t => t.status === 'Active')?.rate || 10;
+    const activeTaxes = taxesData?.data?.filter(t => t.status === 'Active') || [];
+    const totalTaxRate = activeTaxes.reduce((sum, t) => sum + Number(t.rate), 0);
 
     setForm({
       guest_name: '', guest_phone: '', guest_email: '',
       identity_type: 'NID', identity_number: '',
       person_count: 1, check_in: today, check_out: tomorrow.toISOString().split('T')[0],
-      payment_method: 'Cash', subtotal: discountedPrice, tax_percent: activeTax,
+      payment_method: 'Cash', subtotal: discountedPrice, tax_percent: totalTaxRate,
       global_discount_percent: activeGlobalDiscount, category_discount_percent: activeCategoryDiscount,
       base_nightly_rate: discountedPrice 
     });
@@ -326,7 +329,7 @@ export default function ReservationPage() {
       refetchCheckouts();
       
       // Navigate to download receipt state
-      setActiveReservation({ ...activeReservation, ...res, room: selectedRoom });
+      setActiveReservation({ ...activeReservation, ...(res.data || res), room: selectedRoom });
       setModalType('downloadReceipt');
     } catch (err) {
       toast.error(err?.data?.message || 'Failed to process payment.');
@@ -399,6 +402,8 @@ export default function ReservationPage() {
   };
 
   /* ─── Calculation Helper ─── */
+  const activeTaxes = taxesData?.data?.filter(t => t.status === 'Active') || [];
+
   const calculateTotal = () => {
     const st = Number(form.subtotal);
     const tax = st * (Number(form.tax_percent) / 100);
@@ -698,10 +703,21 @@ export default function ReservationPage() {
                          </div>
                        )}
 
-                       <div className="flex justify-between items-end relative z-10 w-full mb-3 pb-3 border-b border-gray-200/60">
-                         <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">{translate('Taxes', language)} ({form.tax_percent}%)</span>
-                         <span className="text-sm font-semibold text-gray-800">{formatPrice((form.subtotal * (form.tax_percent / 100)), currency)}</span>
-                       </div>
+                       {activeTaxes.length > 0 ? (
+                         <div className="mb-3 pb-3 border-b border-gray-200/60">
+                           {activeTaxes.map((tax) => (
+                             <div key={tax.id} className="flex justify-between items-end relative z-10 w-full mb-2 last:mb-0">
+                               <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">{tax.name} ({tax.rate}%)</span>
+                               <span className="text-sm font-semibold text-gray-800">{formatPrice((form.subtotal * (Number(tax.rate) / 100)), currency)}</span>
+                             </div>
+                           ))}
+                         </div>
+                       ) : (
+                         <div className="flex justify-between items-end relative z-10 w-full mb-3 pb-3 border-b border-gray-200/60">
+                           <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">{translate('Taxes', language)} ({form.tax_percent}%)</span>
+                           <span className="text-sm font-semibold text-gray-800">{formatPrice((form.subtotal * (form.tax_percent / 100)), currency)}</span>
+                         </div>
+                       )}
                        
                        <div className="flex justify-between items-end relative z-10 w-full">
                          <span className="text-sm font-black text-gray-800 uppercase tracking-widest">{translate('Grand Total', language)}</span>
@@ -738,7 +754,7 @@ export default function ReservationPage() {
                     {/* PDF Generator Button */}
                     <div className="w-full mt-4">
                       <PDFDownloadLink
-                        document={<ReservationInvoicePDF reservation={activeReservation} hotelInfo={hotelInfo} />}
+                        document={<ReservationInvoicePDF reservation={activeReservation} hotelInfo={hotelInfo} activeTaxes={activeTaxes} />}
                         fileName={`invoice-${activeReservation?.transaction_id || 'receipt'}.pdf`}
                         className="w-full block"
                       >

@@ -35,13 +35,28 @@ class ReportService
         $endMonth = $end->month;
         $endYear = $end->year;
         
-        $payrollRecords = Payroll::whereBetween('year', [$startYear, $endYear])
+        $rawPayrollRecords = Payroll::whereBetween('year', [$startYear, $endYear])
             ->whereIn('month', $this->getMonthsBetween($start, $end))
             ->get();
 
-        $totalPayroll = $payrollRecords->sum(function($p) {
-            return (float)$p->net_salary + (float)$p->bonus - (float)$p->deduction;
-        });
+        $payrollRecords = collect();
+
+        foreach ($rawPayrollRecords as $p) {
+            $amount = (float)$p->net_salary + (float)$p->bonus - (float)$p->deduction;
+            if ($amount <= 0) continue;
+
+            $pDate = $p->paid_at ? Carbon::parse($p->paid_at) : Carbon::parse("1 {$p->month} {$p->year}");
+            
+            // Only include payroll if its assigned date falls within the selected date range
+            if ($pDate->isBetween($start, $end)) {
+                $payrollRecords->push([
+                    'amount' => $amount,
+                    'date' => $pDate->format('Y-m-d')
+                ]);
+            }
+        }
+
+        $totalPayroll = $payrollRecords->sum('amount');
             
         $totalExpense = $totalExpenseItems + $totalPayroll;
         $profitMargin = $totalRevenue - $totalExpense;
@@ -103,20 +118,8 @@ class ReportService
 
         // 4.1 Incorporate Payroll into daily expenses for the chart
         foreach ($payrollRecords as $p) {
-            $amount = (float)$p->net_salary + (float)$p->bonus - (float)$p->deduction;
-            if ($amount <= 0) continue;
-
-            // Determine which date to attribute this payroll to in the chart
-            // We'll use the paid_at date if it's within $start/$end, 
-            // otherwise the 1st of the month if it's within $start/$end,
-            // otherwise just the $start date (to ensure it's captured in the visible chart sum).
-            $pDate = $p->paid_at ? Carbon::parse($p->paid_at) : Carbon::parse("1 {$p->month} {$p->year}");
-            
-            $targetDate = $pDate->isBetween($start, $end) 
-                ? $pDate->format('Y-m-d') 
-                : $start->format('Y-m-d');
-
-            $expenseRaw[$targetDate] = ($expenseRaw[$targetDate] ?? 0) + $amount;
+            $targetDate = $p['date'];
+            $expenseRaw[$targetDate] = ($expenseRaw[$targetDate] ?? 0) + $p['amount'];
         }
             
         // We'll merge these by date.

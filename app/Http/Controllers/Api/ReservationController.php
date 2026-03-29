@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ReservationRequest;
 use App\Models\Reservation;
+use App\Models\Tax;
 use App\Services\ReservationService;
 use Barryvdh\Snappy\Facades\SnappyPdf as PDF;
 use Illuminate\Http\JsonResponse;
@@ -35,7 +36,19 @@ class ReservationController extends Controller
     public function store(ReservationRequest $request): JsonResponse
     {
         try {
-            $reservation = $this->service->create($request->validated());
+            $data = $request->validated();
+            
+            // Adjust totals dynamically based on current DB taxes
+            $activeTaxes = Tax::active()->get();
+            $taxPercent = $activeTaxes->sum('rate') ?? 0;
+            
+            if (isset($data['subtotal'])) {
+                $data['tax_percent'] = $taxPercent;
+                $data['tax_amount'] = $data['subtotal'] * ($taxPercent / 100);
+                $data['total_amount'] = $data['subtotal'] + $data['tax_amount'];
+            }
+
+            $reservation = $this->service->create($data);
             return response()->json([
                 'success' => true,
                 'data'    => $reservation,
@@ -49,7 +62,23 @@ class ReservationController extends Controller
     public function update(ReservationRequest $request, Reservation $reservation): JsonResponse
     {
         try {
-            $updated = $this->service->update($reservation, $request->validated());
+            $data = $request->validated();
+
+            // Only dynamically recalculate the totals if the reservation has not been fully paid yet
+            // This prevents changing historical prices if someone updates a guest name later
+            if ($reservation->payment_status !== 'Completed' && $reservation->status !== 'Paid') {
+                $subtotal = $data['subtotal'] ?? $reservation->subtotal;
+                $activeTaxes = Tax::active()->get();
+                $taxPercent = $activeTaxes->sum('rate') ?? 0;
+                
+                if ($subtotal !== null) {
+                    $data['tax_percent'] = $taxPercent;
+                    $data['tax_amount'] = $subtotal * ($taxPercent / 100);
+                    $data['total_amount'] = $subtotal + $data['tax_amount'];
+                }
+            }
+
+            $updated = $this->service->update($reservation, $data);
             return response()->json([
                 'success' => true,
                 'data'    => $updated,
@@ -86,8 +115,9 @@ class ReservationController extends Controller
     {
         try {
             $reservation->load('room.category');
+            $activeTaxes = \App\Models\Tax::active()->get();
             
-            $pdf = PDF::loadView('pdf.reservation_invoice', compact('reservation'));
+            $pdf = PDF::loadView('pdf.reservation_invoice', compact('reservation', 'activeTaxes'));
             
             return $pdf->download('invoice-' . $reservation->transaction_id . '.pdf');
         } catch (\Exception $e) {

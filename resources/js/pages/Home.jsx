@@ -50,7 +50,7 @@ const Home = () => {
     const [filterCategory, setFilterCategory] = useState('All');
     const [filterGuests, setFilterGuests] = useState('Any');
     const [currentPage, setCurrentPage] = useState(1);
-    const roomsPerPage = 12; // Increased for better layout
+    const roomsPerPage = 9; // Display 3x3 grid layout per page
     const sliderRef = useRef(null);
 
     useEffect(() => {
@@ -91,7 +91,9 @@ const Home = () => {
 
     const handlePageChange = (pageNumber) => {
         setCurrentPage(pageNumber);
-        document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
+        setTimeout(() => {
+            document.getElementById('features')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
     };
 
     const offers = [
@@ -931,10 +933,10 @@ const Home = () => {
 
             {/* Footer */}
             <footer className="bg-white pt-16 sm:pt-24 pb-12 border-t border-gray-100">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-16 mb-16 sm:mb-20">
-                    <div className="col-span-1">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 md:grid-cols-2 gap-10 lg:gap-24 mb-16 sm:mb-20">
+                    <div>
                         <span className="text-2xl font-bold text-[#202921] mb-6 block">The Elite Concierge</span>
-                        <p className="text-sm text-gray-400 font-light leading-relaxed mb-8">Crafting experiences that transcend the ordinary. Every detail is a testament to our commitment to luxury.</p>
+                        <p className="text-sm text-gray-400 font-light leading-relaxed mb-8 max-w-md">Crafting experiences that transcend the ordinary. Every detail is a testament to our commitment to luxury.</p>
                         <div className="flex gap-4">
                             <a href={contactData?.[0]?.facebook || '#'} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400 hover:text-[#B59441] transition-all"><RiFacebookCircleLine size={22} /></a>
                             <a href={contactData?.[0]?.instagram || '#'} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400 hover:text-[#B59441] transition-all"><RiInstagramLine size={22} /></a>
@@ -942,33 +944,13 @@ const Home = () => {
                         </div>
                     </div>
                     
-                    <div>
+                    <div className="md:pl-10 lg:pl-20">
                         <h4 className="text-[10px] font-bold text-[#202921] uppercase tracking-[0.3em] mb-8">Navigation</h4>
-                        <ul className="space-y-4">
+                        <ul className="space-y-4 grid grid-cols-2 gap-x-4">
                             {navLinks.map(link => (
                                 <li key={link.name}><a href={link.href} className="text-sm font-medium text-gray-600 hover:text-[#B59441] transition-all">{link.name}</a></li>
                             ))}
                         </ul>
-                    </div>
-
-                    <div>
-                        <h4 className="text-[10px] font-bold text-[#202921] uppercase tracking-[0.3em] mb-8">Services</h4>
-                        <ul className="space-y-4">
-                            <li><a href="#" className="text-sm font-medium text-gray-600 hover:text-[#B59441] transition-all">Luxury Suites</a></li>
-                            <li><a href="#" className="text-sm font-medium text-gray-600 hover:text-[#B59441] transition-all">Gourmet Dining</a></li>
-                            <li><a href="#" className="text-sm font-medium text-gray-600 hover:text-[#B59441] transition-all">Wellness & Spa</a></li>
-                        </ul>
-                    </div>
-
-                    <div>
-                        <h4 className="text-[10px] font-bold text-[#202921] uppercase tracking-[0.3em] mb-8">Newsletter</h4>
-                        <p className="text-sm text-gray-400 mb-6 font-light">Join our exclusive mailing list for updates.</p>
-                        <div className="flex bg-gray-50 p-2 rounded-xl border border-gray-100">
-                            <input type="email" placeholder="Email address" className="bg-transparent border-none focus:ring-0 text-sm px-4 flex-1 outline-none" />
-                            <button className="bg-[#202921] text-white p-3 rounded-lg">
-                                <RiArrowRightLine size={18} />
-                            </button>
-                        </div>
                     </div>
                 </div>
 

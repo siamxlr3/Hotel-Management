@@ -160,8 +160,8 @@ export default function CheckInPage() {
                                <span>{new Date(res.check_in).toLocaleDateString()} &rarr; {new Date(res.check_out).toLocaleDateString()}</span>
                              </div>
                              <div className="bg-gray-50/80 p-1.5 rounded-lg border border-gray-100 text-[11px] flex justify-between gap-2 shadow-sm font-semibold">
-                               {res.checked_in_at ? <span className="text-emerald-700">IN: {new Date(res.checked_in_at.replace(' ', 'T')).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span> : <span className="text-gray-400">IN: --:--</span>}
-                               {res.checked_out_at ? <span className="text-blue-700">OUT: {new Date(res.checked_out_at.replace(' ', 'T')).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span> : <span className="text-gray-400">OUT: --:--</span>}
+                               {res.checked_in_at ? <span className="text-emerald-700">IN: {new Date(res.checked_in_at.replace(' ', 'T') + 'Z').toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span> : <span className="text-gray-400">IN: --:--</span>}
+                               {res.checked_out_at ? <span className="text-blue-700">OUT: {new Date(res.checked_out_at.replace(' ', 'T') + 'Z').toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span> : <span className="text-gray-400">OUT: --:--</span>}
                              </div>
                            </div>
                         </td>

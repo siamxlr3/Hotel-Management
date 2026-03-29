@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: hotel-management-live
+    env: php
+    plan: free
+    buildCommand: "composer install --optimize-autoloader --no-dev && npm install && npm run build"
+    startCommand: "apache2-foreground"
+    envVars:
+      - key: DOCUMENT_ROOT
+        value: /var/www/html/public

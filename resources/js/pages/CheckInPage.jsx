@@ -159,12 +159,10 @@ export default function CheckInPage() {
                                <strong className="w-10 text-gray-400 text-[10px] uppercase tracking-widest">{translate('Book', language)}</strong> 
                                <span>{new Date(res.check_in).toLocaleDateString()} &rarr; {new Date(res.check_out).toLocaleDateString()}</span>
                              </div>
-                             {(res.checked_in_at || res.checked_out_at) && (
-                               <div className="bg-gray-50/80 p-1.5 rounded-lg border border-gray-100 text-[11px] flex justify-between gap-2 shadow-sm font-semibold">
-                                 {res.checked_in_at ? <span className="text-emerald-700">IN: {new Date(res.checked_in_at.replace(' ', 'T')).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span> : <span className="text-gray-300">IN: --:--</span>}
-                                 {res.checked_out_at ? <span className="text-blue-700">OUT: {new Date(res.checked_out_at.replace(' ', 'T')).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span> : <span className="text-gray-300">OUT: --:--</span>}
-                               </div>
-                             )}
+                             <div className="bg-gray-50/80 p-1.5 rounded-lg border border-gray-100 text-[11px] flex justify-between gap-2 shadow-sm font-semibold">
+                               {res.checked_in_at ? <span className="text-emerald-700">IN: {new Date(res.checked_in_at.replace(' ', 'T')).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span> : <span className="text-gray-400">IN: --:--</span>}
+                               {res.checked_out_at ? <span className="text-blue-700">OUT: {new Date(res.checked_out_at.replace(' ', 'T')).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span> : <span className="text-gray-400">OUT: --:--</span>}
+                             </div>
                            </div>
                         </td>
                         <td className="p-4 text-[11px] font-medium text-gray-500 uppercase tracking-wide">

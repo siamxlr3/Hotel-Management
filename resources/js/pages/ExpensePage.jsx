@@ -152,22 +152,25 @@ function ExpenseForm({ initial, onSave, onCancel, loading, currency }) {
   const t = useTranslate();
   const blankRow = { items: '', category: 'Kg', qty: '', price: '', total: 0 };
   
-  const getLocalDateString = (d) => new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-  const todayLocal = getLocalDateString(new Date());
+  const getLocalDateString = (d) => {
+    if (!d) return '';
+    const dateObj = new Date(d);
+    return new Date(dateObj.getTime() - (dateObj.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+  };
 
   const blank = {
     supplier_name: '', contact_person: '', phone: '', address: '',
     rows: [blankRow],
-    date: todayLocal, status: 'Unpaid',
+    date: getLocalDateString(new Date()), status: 'Unpaid',
   };
 
   const [form, setForm] = useState(() => {
     if (initial?.id) {
-      // If editing, use existing line_items but explicitly reset date to current day as requested
+      // If editing, use existing line_items and perfectly parse Laravel's UTC API date back into the Local specific calendar date
       return {
         ...blank, ...initial,
         rows: initial.line_items || [{ ...blankRow }],
-        date: todayLocal,
+        date: initial.date ? getLocalDateString(initial.date) : blank.date,
       };
     }
     return blank;

@@ -20,6 +20,10 @@ class HomeAboutService
         if ($request->hasFile('image')) {
             $data['image'] = $request->file('image')->store('about', 'public');
         }
+
+        // Clean up data
+        unset($data['image']);
+
         return HomeAbout::create($data);
     }
 
@@ -33,6 +37,10 @@ class HomeAboutService
                 $request->file('image'), 'about', $about->image
             );
         }
+
+        // Clean up data
+        unset($data['image'], $data['remove_image']);
+
         $about->update($data);
         return $about->fresh();
     }

@@ -22,9 +22,9 @@ class HomeController extends Controller
 
     private function transform(Home $h): array {
         $a = $h->toArray();
-        $a['logo_url']  = $h->logo  ? Storage::disk('public')->url($h->logo)  : null;
+        $a['logo_url']  = $h->logo  ? "/storage/{$h->logo}"  : null;
         $a['hero_urls'] = array_map(
-            fn($p) => Storage::disk('public')->url($p),
+            fn($p) => "/storage/{$p}",
             $h->hero ?? []
         );
         return $a;

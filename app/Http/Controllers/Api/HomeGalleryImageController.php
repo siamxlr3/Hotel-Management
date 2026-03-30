@@ -21,7 +21,7 @@ class HomeGalleryImageController extends Controller
     private function transform(HomeGalleryImage $g): array {
         $arr = $g->toArray();
         $arr['gallery_urls'] = array_map(
-            fn($p) => Storage::disk('public')->url($p),
+            fn($p) => "/storage/{$p}",
             $g->gallery ?? []
         );
         return $arr;

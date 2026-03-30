@@ -20,7 +20,7 @@ class HomeAboutController extends Controller
 
     private function transform(HomeAbout $a): array {
         $arr = $a->toArray();
-        $arr['image_url'] = $a->image ? Storage::disk('public')->url($a->image) : null;
+        $arr['image_url'] = $a->image ? "/storage/{$a->image}" : null;
         return $arr;
     }
 

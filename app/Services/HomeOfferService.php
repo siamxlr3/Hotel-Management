@@ -24,6 +24,10 @@ class HomeOfferService
         if ($request->hasFile('image')) {
             $data['image'] = $request->file('image')->store('offer', 'public');
         }
+
+        // Clean up data
+        unset($data['image']);
+
         return HomeOffer::create($data);
     }
 
@@ -37,6 +41,10 @@ class HomeOfferService
                 $request->file('image'), 'offer', $offer->image
             );
         }
+
+        // Clean up data
+        unset($data['image'], $data['remove_image']);
+
         $offer->update($data);
         return $offer->fresh();
     }

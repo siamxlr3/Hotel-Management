@@ -20,7 +20,7 @@ class HomeOfferController extends Controller
 
     private function transform(HomeOffer $o): array {
         $arr = $o->toArray();
-        $arr['image_url'] = $o->image ? Storage::disk('public')->url($o->image) : null;
+        $arr['image_url'] = $o->image ? "/storage/{$o->image}" : null;
         return $arr;
     }
 

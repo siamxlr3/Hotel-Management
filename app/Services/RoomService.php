@@ -38,6 +38,9 @@ class RoomService
             $data['images'] = $this->uploadImages($data['new_images']);
         }
 
+        // Clean up data to avoid passing file objects to create
+        unset($data['new_images']);
+
         $room = Room::create($data);
         return $room->load('category:id,name');
     }
@@ -57,6 +60,9 @@ class RoomService
 
         // 3. Combine remaining and new paths
         $data['images'] = array_merge($existingPaths, $newPaths);
+
+        // Clean up data to avoid passing file objects/redundant paths to update
+        unset($data['new_images'], $data['existing_images']);
 
         $room->update($data);
         return $room->load('category:id,name');

@@ -41,6 +41,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
 });
 
+// Diagnostic route
+Route::get('/debug-db', function () {
+    $host = env('DB_HOST', 'not set');
+    return response()->json([
+        'db_host' => $host,
+        'resolved_ip' => gethostbyname($host),
+        'server_ip' => $_SERVER['SERVER_ADDR'] ?? 'unknown',
+        'php_version' => PHP_VERSION,
+    ]);
+});
+
 Route::middleware('api')->group(function () {
     Route::apiResource('cms/home',           HomeController::class);
     Route::apiResource('cms/home-about',     HomeAboutController::class);

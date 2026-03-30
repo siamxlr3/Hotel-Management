@@ -12,23 +12,13 @@ class RoomController extends Controller
 {
     public function __construct(private RoomService $service) {}
 
-    private function transform(Room $room): array
-    {
-        $data = $room->toArray();
-        $data['image_urls'] = array_map(
-            fn($path) => "/storage/{$path}",
-            $room->images ?? []
-        );
-        return $data;
-    }
-
     public function index(Request $request): JsonResponse
     {
         try {
             $data = $this->service->getAll($request->all());
             return response()->json([
                 'success' => true,
-                'data'    => array_map(fn($r) => $this->transform($r), $data->items()),
+                'data'    => $data->items(),
                 'meta'    => [
                     'current_page' => $data->currentPage(),
                     'last_page'    => $data->lastPage(),
@@ -45,7 +35,7 @@ class RoomController extends Controller
     {
         try {
             $room = $this->service->create($request->validated());
-            return response()->json(['success' => true, 'data' => $this->transform($room), 'message' => 'Room created successfully.'], 201);
+            return response()->json(['success' => true, 'data' => $room, 'message' => 'Room created successfully.'], 201);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
@@ -60,7 +50,7 @@ class RoomController extends Controller
     {
         try {
             $updated = $this->service->update($room, $request->validated());
-            return response()->json(['success' => true, 'data' => $this->transform($updated), 'message' => 'Room updated successfully.']);
+            return response()->json(['success' => true, 'data' => $updated, 'message' => 'Room updated successfully.']);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }

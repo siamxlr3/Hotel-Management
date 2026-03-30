@@ -48,8 +48,8 @@ RUN chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 # Run Composer installation for PHP dependencies
 RUN composer install --optimize-autoloader --no-dev
 
-# Create the storage link for public file access (clean up any existing source directory first)
-RUN rm -rf public/storage && php artisan storage:link
+# Create the storage link for public file access
+RUN php artisan storage:link
 
 # Expose port 80 for Render routing
 EXPOSE 80

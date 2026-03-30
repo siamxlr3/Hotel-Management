@@ -426,7 +426,7 @@ const Home = () => {
                                         {room.images.map((img, idx) => (
                                             <div key={idx} className="h-full aspect-[16/11] outline-none">
                                                 <img 
-                                                    src={`/storage/${img}`} 
+                                                    src={img.startsWith('http') || img.startsWith('/storage/') ? img : `/storage/${img}`} 
                                                     alt={`Room ${room.room_number}`} 
                                                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
                                                 />

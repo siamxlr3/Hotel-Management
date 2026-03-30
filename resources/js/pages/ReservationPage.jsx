@@ -342,7 +342,7 @@ export default function ReservationPage() {
   const checkInReserved = async () => {
     if (!activeReservation) return;
     try {
-      await updateReservationFn({ id: activeReservation.id, booking_type: 'Booking', checked_in_at: new Date().toISOString() }).unwrap();
+      await updateReservationFn({ id: activeReservation.id, checked_in_at: new Date().toISOString() }).unwrap();
       toast.success('Guest Checked-In.');
       refetchRooms();
       refetchCheckouts();

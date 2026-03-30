@@ -87,15 +87,13 @@ class ReservationService
             if (isset($data['status']) && $data['status'] === 'Paid') {
                 Room::where('id', $reservation->room_id)->update(['status' => 'Cleaning']);
             }
-            // If upgrading from Reserved to Occupied
-            elseif (isset($data['booking_type']) && $data['booking_type'] === 'Booking') {
-                if ($reservation->room->status === 'Reserved') {
-                    Room::where('id', $reservation->room_id)->update(['status' => 'Occupied']);
-                    
-                    if (empty($reservation->checked_in_at)) {
-                        $reservation->checked_in_at = now();
-                        $reservation->save();
-                    }
+            // If checking in a guest for a reserved room
+            elseif (isset($data['checked_in_at']) && $reservation->room->status === 'Reserved') {
+                Room::where('id', $reservation->room_id)->update(['status' => 'Occupied']);
+                
+                if (empty($reservation->checked_in_at)) {
+                    $reservation->checked_in_at = now();
+                    $reservation->save();
                 }
             }
 

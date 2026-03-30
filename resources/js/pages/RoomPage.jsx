@@ -411,7 +411,7 @@ function RoomForm({ initial, categories = [], onSave, onCancel, loading }) {
             {/* Existing Images */}
             {existingImages.length > 0 && existingImages.map((path, i) => (
               <div key={`ex-${i}`} className="relative w-24 h-24 shrink-0 rounded-xl overflow-hidden border border-gray-100 shadow-sm group/img">
-                <img src={path.startsWith('http') || path.startsWith('/storage/') ? path : `/storage/${path}`} className="w-full h-full object-cover" alt="Existing" />
+                <img src={`/storage/${path}`} className="w-full h-full object-cover" alt="Existing" />
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">
                   <button 
                     type="button" 
@@ -698,7 +698,7 @@ export default function RoomPage() {
                           {room.images && room.images.length > 0 ? (
                             <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-gray-100 shadow-sm group/img">
                               <img 
-                                src={room.images[0].startsWith('http') || room.images[0].startsWith('/storage/') ? room.images[0] : `/storage/${room.images[0]}`} 
+                                src={`/storage/${room.images[0]}`} 
                                 className="w-full h-full object-cover transition-transform group-hover/img:scale-110" 
                                 alt="Room" 
                               />

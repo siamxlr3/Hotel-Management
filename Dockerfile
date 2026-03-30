@@ -48,12 +48,11 @@ RUN chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 # Run Composer installation for PHP dependencies
 RUN composer install --optimize-autoloader --no-dev
 
-# Copy and set up the startup entrypoint script
-COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+# Create the storage link for public file access
+RUN php artisan storage:link
 
 # Expose port 80 for Render routing
 EXPOSE 80
 
-# Run startup script: creates storage symlink AFTER disk is mounted, then starts Apache
-CMD ["/usr/local/bin/docker-entrypoint.sh"]
+# Start Apache in the foreground
+CMD ["apache2-foreground"]

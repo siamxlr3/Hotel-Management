@@ -44,14 +44,6 @@ export default function CheckInPage() {
   const [endDate, setEndDate] = useState('');
   const [page, setPage] = useState(1);
 
-  const parseUtcTime = (dateStr) => {
-    if (!dateStr) return '--:--';
-    let clean = dateStr.replace(' ', 'T');
-    if (!clean.endsWith('Z')) clean += 'Z';
-    const dateObj = new Date(clean);
-    return isNaN(dateObj.getTime()) ? '--:--' : dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-  };
-
   // RTK Query: Reservations
   const { data: reservationData, isFetching: loadingReservations } = useGetReservationsQuery({
     search: debouncedSearch,
@@ -166,10 +158,6 @@ export default function CheckInPage() {
                              <div className="flex gap-2 items-center text-gray-700">
                                <strong className="w-10 text-gray-400 text-[10px] uppercase tracking-widest">{translate('Book', language)}</strong> 
                                <span>{new Date(res.check_in).toLocaleDateString()} &rarr; {new Date(res.check_out).toLocaleDateString()}</span>
-                             </div>
-                             <div className="bg-gray-50/80 p-1.5 rounded-lg border border-gray-100 text-[11px] flex justify-between gap-2 shadow-sm font-semibold">
-                               {res.checked_in_at ? <span className="text-emerald-700">IN: {parseUtcTime(res.checked_in_at)}</span> : <span className="text-gray-400">IN: --:--</span>}
-                               {res.checked_out_at ? <span className="text-blue-700">OUT: {parseUtcTime(res.checked_out_at)}</span> : <span className="text-gray-400">OUT: --:--</span>}
                              </div>
                            </div>
                         </td>

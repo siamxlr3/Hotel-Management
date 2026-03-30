@@ -112,10 +112,12 @@ export default function CheckInPage() {
       <div className="flex-1 overflow-auto px-6 pb-6" style={{ scrollbarWidth: 'thin' }}>
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col h-full min-h-[500px]">
            <div className="overflow-x-auto flex-1 h-full relative" style={{ scrollbarWidth: 'thin' }}>
-             <table className="w-full text-left border-collapse min-w-[1700px] table-fixed">
+             <table className="w-full text-left border-collapse min-w-[1950px] table-fixed">
                 <thead className="bg-gray-50/80 sticky top-0 z-10 backdrop-blur-sm">
                   <tr className="border-b border-gray-200 text-[11px] uppercase tracking-wider text-gray-500 font-bold">
                     <th className="p-4 pl-6 w-[140px]">{translate('Transaction', language)}</th>
+                    <th className="p-4 w-[160px]">{translate('Created At', language)}</th>
+                    <th className="p-4 w-[120px]">{translate('Type', language)}</th>
                     <th className="p-4 w-[200px]">{translate('Guest', language)}</th>
                     <th className="p-4 w-[180px]">{translate('Email', language)}</th>
                     <th className="p-4 w-[120px]">{translate('Identity Type', language)}</th>
@@ -136,6 +138,13 @@ export default function CheckInPage() {
                       <tr key={res.id} className="border-b border-gray-50 hover:bg-indigo-50/30 transition-colors">
                         <td className="p-4 pl-6">
                            <span className="font-mono text-xs text-indigo-600 font-bold bg-indigo-50 px-2 py-1 rounded-md">{res.transaction_id}</span>
+                        </td>
+                        <td className="p-4">
+                           <span className="text-xs text-gray-600 font-medium">{res.created_at ? new Date(res.created_at).toLocaleDateString() : 'N/A'}</span>
+                           <span className="block text-[10px] text-gray-400 mt-1">{res.created_at ? new Date(res.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}</span>
+                        </td>
+                        <td className="p-4">
+                           <span className={`px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md ${res.booking_type === 'Booking' ? 'bg-blue-50 text-blue-600' : 'bg-purple-50 text-purple-600'}`}>{translate(res.booking_type || 'Reservation', language)}</span>
                         </td>
                         <td className="p-4">
                           <p className="font-bold text-gray-800">{res.guest_name}</p>
@@ -215,7 +224,7 @@ export default function CheckInPage() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={11} className="p-16 text-center text-gray-400 flex flex-col items-center w-full min-h-[300px] justify-center absolute inset-0">
+                      <td colSpan={13} className="p-16 text-center text-gray-400 flex flex-col items-center w-full min-h-[300px] justify-center absolute inset-0">
                         <MdCalendarToday size={48} className="mb-4 text-gray-200" />
                         <span className="font-bold text-gray-500">No reservations found.</span>
                         <span className="text-sm">Try adjusting your search or date filters.</span>

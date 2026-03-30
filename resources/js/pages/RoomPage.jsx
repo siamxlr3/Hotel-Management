@@ -698,7 +698,7 @@ export default function RoomPage() {
                           {room.images && room.images.length > 0 ? (
                             <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-gray-100 shadow-sm group/img">
                               <img 
-                                src={`/storage/${room.images[0]}`} 
+                                src={room.image_urls[0]} 
                                 className="w-full h-full object-cover transition-transform group-hover/img:scale-110" 
                                 alt="Room" 
                               />

@@ -153,20 +153,21 @@ function ExpenseForm({ initial, onSave, onCancel, loading, currency }) {
   const blankRow = { items: '', category: 'Kg', qty: '', price: '', total: 0 };
   
   const getLocalDateString = (d) => new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+  const todayLocal = getLocalDateString(new Date());
 
   const blank = {
     supplier_name: '', contact_person: '', phone: '', address: '',
     rows: [blankRow],
-    date: getLocalDateString(new Date()), status: 'Unpaid',
+    date: todayLocal, status: 'Unpaid',
   };
 
   const [form, setForm] = useState(() => {
     if (initial?.id) {
-      // If editing, use existing line_items
+      // If editing, use existing line_items but explicitly reset date to current day as requested
       return {
         ...blank, ...initial,
         rows: initial.line_items || [{ ...blankRow }],
-        date: initial.date ? (typeof initial.date === 'string' ? initial.date.split('T')[0] : initial.date) : blank.date,
+        date: todayLocal,
       };
     }
     return blank;

@@ -26,9 +26,6 @@ class HomeService
             );
         }
 
-        // Clean up data to avoid passing file objects to create
-        unset($data['logo'], $data['hero']);
-
         return Home::create($data);
     }
 
@@ -71,9 +68,6 @@ class HomeService
         if (!empty($heroResult) || $request->has('keep_hero') || $request->has('remove_hero')) {
             $data['hero'] = $heroResult;
         }
-
-        // Clean up data to avoid passing file objects/redundant flags to update
-        unset($data['logo'], $data['hero'], $data['remove_logo'], $data['remove_hero'], $data['keep_hero']);
 
         $home->update($data);
         return $home->fresh();

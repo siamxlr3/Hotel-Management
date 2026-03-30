@@ -22,12 +22,7 @@ class HomeGalleryImageService
             $data['gallery'] = $this->storeMultipleImages(
                 $request->file('gallery'), 'gallery'
             );
-        } else {
-            $data['gallery'] = $data['gallery'] ?? [];
         }
-
-        // Clean up data to avoid passing file objects to create
-        unset($data['gallery']);
 
         return HomeGalleryImage::create($data);
     }
@@ -61,9 +56,6 @@ class HomeGalleryImageService
             || $request->hasFile('gallery')) {
             $data['gallery'] = $result;
         }
-
-        // Clean up data to avoid passing file objects/redundant flags to update
-        unset($data['gallery'], $data['remove_gallery'], $data['keep_gallery']);
 
         $gallery->update($data);
         return $gallery->refresh();

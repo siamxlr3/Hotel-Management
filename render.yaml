@@ -1,9 +1,11 @@
 services:
   - type: web
     name: hotel-management-live
-    env: docker
+    env: php
     plan: free
-    startCommand: "/usr/local/bin/entrypoint.sh"
+    buildCommand: "composer install --no-dev && npm install && npm run build"
+    # Removing custom startCommand to use Render's native PHP default
+
     disk:
       name: hotel-storage
       mountPath: /var/www/html/storage/app/public

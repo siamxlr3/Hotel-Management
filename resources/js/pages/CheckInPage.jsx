@@ -44,6 +44,14 @@ export default function CheckInPage() {
   const [endDate, setEndDate] = useState('');
   const [page, setPage] = useState(1);
 
+  const parseUtcTime = (dateStr) => {
+    if (!dateStr) return '--:--';
+    let clean = dateStr.replace(' ', 'T');
+    if (!clean.endsWith('Z')) clean += 'Z';
+    const dateObj = new Date(clean);
+    return isNaN(dateObj.getTime()) ? '--:--' : dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+  };
+
   // RTK Query: Reservations
   const { data: reservationData, isFetching: loadingReservations } = useGetReservationsQuery({
     search: debouncedSearch,

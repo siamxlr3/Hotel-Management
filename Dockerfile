@@ -48,11 +48,12 @@ RUN chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 # Run Composer installation for PHP dependencies
 RUN composer install --optimize-autoloader --no-dev
 
-# Create the storage link for public file access
-RUN php artisan storage:link
+# Copy the runtime startup script and make it executable
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
 # Expose port 80 for Render routing
 EXPOSE 80
 
-# Start Apache in the foreground
-CMD ["apache2-foreground"]
+# Use the runtime script as the main container command
+CMD ["/usr/local/bin/entrypoint.sh"]

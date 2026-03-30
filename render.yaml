@@ -4,7 +4,7 @@ services:
     env: php
     plan: free
     buildCommand: "composer install --no-dev && npm install && npm run build"
-    startCommand: "apache2-foreground"
+    startCommand: "/usr/local/bin/docker-entrypoint.sh"
     disk:
       name: hotel-storage
       mountPath: /var/www/html/storage/app/public

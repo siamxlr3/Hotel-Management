@@ -1,15 +1,23 @@
-# Exit immediately if a command exits with a non-zero status
+#!/bin/bash
 set -e
 
-echo "Running startup commands..."
+echo "Starting deployment setup..."
 
-# Fix DNS resolution if needed (fallback to Google DNS)
-echo "nameserver 8.8.8.8" >> /etc/resolv.conf || true
+# Add reliable DNS as a fallback for database resolution
+# We use 'tee -a' because some environments make resolv.conf read-only for echo
+echo "nameserver 8.8.8.8" | tee -a /etc/resolv.conf || true
+echo "nameserver 8.8.4.4" | tee -a /etc/resolv.conf || true
 
-# Create the storage link at runtime (ensures it points to the mounted volume)
+# Enter the application directory
+cd /var/www/html
+
+# Create the storage link at runtime 
 if [ -f artisan ]; then
+    echo "Creating storage link..."
     php artisan storage:link --force || echo "Storage link already exists or failed."
+else
+    echo "Warning: artisan file not found at $(pwd)"
 fi
 
-echo "Starting Apache server..."
+echo "Starting Apache..."
 exec apache2-foreground

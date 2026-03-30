@@ -647,10 +647,10 @@ const Home = () => {
                             className="relative w-full overflow-hidden rounded-[1.5rem] shadow-lg min-h-[280px] sm:min-h-[400px] lg:min-h-[500px]"
                         >
                             <img 
-                                    src={`/storage/${(aboutData?.[0] || aboutData?.data?.[0]).image}`} 
-                                    alt="About Us" 
-                                    className="w-full h-full object-cover absolute inset-0"
-                                />
+                                src={(aboutData?.[0] || aboutData?.data?.[0]).image_url || `/storage/${(aboutData?.[0] || aboutData?.data?.[0]).image}`} 
+                                alt="About Us" 
+                                className="w-full h-full object-cover absolute inset-0"
+                            />
                         </motion.div>
                         
                         <motion.div
@@ -795,7 +795,7 @@ const Home = () => {
                                                     className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 group hover:shadow-xl transition-all duration-500 h-full flex flex-col cursor-pointer"
                                                 >
                                                     <div className="relative h-64 overflow-hidden flex-shrink-0">
-                                                        <img src={`/storage/${offer.image}`} alt={offer.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                                                        <img src={offer.image_url || (offer.image ? `/storage/${offer.image}` : '')} alt={offer.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                                                         <div className="absolute top-4 left-4 bg-[#B59441] text-white text-[10px] font-bold px-3 py-1 rounded-lg uppercase tracking-[0.2em] shadow-lg">
                                                             {parseFloat(offer.discount)}% OFF
                                                         </div>
@@ -839,8 +839,8 @@ const Home = () => {
                             <div className="col-span-2 md:col-span-1 border border-gray-100/20 rounded-2xl overflow-hidden shadow-md bg-gray-100 animate-pulse"></div>
                             <div className="hidden md:block rounded-2xl overflow-hidden shadow-md bg-gray-100 animate-pulse"></div>
                         </>
-                    ) : galleryData && galleryData.length > 0 && galleryData[0].gallery ? (
-                        galleryData[0].gallery.slice(0, 5).map((imagePath, i) => {
+                    ) : galleryData && galleryData.length > 0 && (galleryData[0].gallery_urls?.length > 0 || galleryData[0].gallery?.length > 0) ? (
+                        (galleryData[0].gallery_urls || galleryData[0].gallery.map(p => p.startsWith('http') || p.startsWith('/storage/') ? p : `/storage/${p}`)).slice(0, 5).map((imagePath, i) => {
                             // Define the specific classes for each index to maintain the masonry layout
                             const classes = [
                                 "col-span-2 row-span-2 rounded-2xl overflow-hidden shadow-lg", // 0: Large left image
@@ -856,7 +856,7 @@ const Home = () => {
                             return (
                                 <div key={i} className={className}>
                                     <img 
-                                        src={`/storage/${imagePath}`} 
+                                        src={imagePath.startsWith('http') || imagePath.startsWith('/storage/') ? imagePath : `/storage/${imagePath}`} 
                                         alt={`Gallery Image ${i + 1}`} 
                                         className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" 
                                     />

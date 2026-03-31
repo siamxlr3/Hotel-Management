@@ -1,11 +1,14 @@
 <?php
 namespace App\Models;
-use Illuminate\Database\Eloquent\Model;
+
+use App\Traits\HandlesImageUpload;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class HomeOffer extends Model
 {
-    use HasFactory;
+    use HasFactory, HandlesImageUpload;
+
     protected $fillable = ['title','description','discount','image','start_date','end_date'];
     protected $casts    = [
         'discount'   => 'decimal:2',
@@ -16,7 +19,6 @@ class HomeOffer extends Model
 
     public function getImageUrlAttribute()
     {
-        if (!$this->image) return null;
-        return str_starts_with($this->image, 'http') ? $this->image : asset('storage/' . $this->image);
+        return $this->imageUrl($this->image);
     }
 }

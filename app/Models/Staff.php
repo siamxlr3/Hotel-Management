@@ -2,13 +2,13 @@
 
 namespace App\Models;
 
+use App\Traits\HandlesImageUpload;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
 
 class Staff extends Model
 {
-    use HasFactory;
+    use HasFactory, HandlesImageUpload;
 
     protected $fillable = [
         'staff_code', 'name', 'email', 'phone', 'address', 
@@ -54,7 +54,6 @@ class Staff extends Model
      */
     public function getImageUrlAttribute()
     {
-        if (!$this->image) return null;
-        return str_starts_with($this->image, 'http') ? $this->image : asset('storage/' . $this->image);
+        return $this->imageUrl($this->image);
     }
 }

@@ -23,6 +23,7 @@ trait HandlesImageUpload
         }
 
         // Fallback to local storage
+        \Illuminate\Support\Facades\Log::info("Cloudinary disabled or failed. Falling back to local disk for: {$folder}");
         return $file->store($folder, 'public');
     }
 
@@ -38,6 +39,10 @@ trait HandlesImageUpload
         $paths = [];
         $cloudinary = app(\App\Services\CloudinaryService::class);
         $isCloudReady = $cloudinary->isReady();
+
+        if (!$isCloudReady) {
+            \Illuminate\Support\Facades\Log::info("Cloudinary not ready. Using local disk for multiple images in: {$folder}");
+        }
 
         foreach ($files as $file) {
             $uploadedPath = null;
@@ -83,6 +88,11 @@ trait HandlesImageUpload
     protected function imageUrl(?string $path): ?string
     {
         if (!$path) return null;
-        return str_starts_with($path, 'http') ? $path : Storage::disk('public')->url($path);
+        
+        // If it's already a full URL (Cloudinary), return as is
+        if (str_starts_with($path, 'http')) return $path;
+
+        // Otherwise, return as a public storage asset URL
+        return asset('storage/' . $path);
     }
 }

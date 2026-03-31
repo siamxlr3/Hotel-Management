@@ -15,9 +15,9 @@ class CloudinaryService
 
     public function __construct()
     {
-        $this->cloudName = env('CLOUDINARY_CLOUD_NAME');
-        $this->apiKey    = env('CLOUDINARY_API_KEY');
-        $this->apiSecret = env('CLOUDINARY_API_SECRET');
+        $this->cloudName = config('services.cloudinary.cloud_name');
+        $this->apiKey    = config('services.cloudinary.api_key');
+        $this->apiSecret = config('services.cloudinary.api_secret');
         $this->client    = new Client();
     }
 
@@ -70,8 +70,14 @@ class CloudinaryService
             $result = json_decode($response->getBody()->getContents(), true);
             return $result['secure_url'] ?? null;
 
+        } catch (\GuzzleHttp\Exception\GuzzleException $e) {
+            $errorBody = $e instanceof \GuzzleHttp\Exception\RequestException && $e->hasResponse() 
+                ? (string) $e->getResponse()->getBody() 
+                : $e->getMessage();
+            Log::error("Cloudinary Upload Error: " . $errorBody);
+            return null;
         } catch (\Exception $e) {
-            Log::error('Cloudinary Upload Failed: ' . $e->getMessage());
+            Log::error('Cloudinary Unexpected Error: ' . $e->getMessage());
             return null;
         }
     }

@@ -1,26 +1,26 @@
 <?php
 namespace App\Models;
-use Illuminate\Database\Eloquent\Model;
+
+use App\Traits\HandlesImageUpload;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class Home extends Model
 {
-    use HasFactory;
+    use HasFactory, HandlesImageUpload;
+
     protected $fillable = ['hotel_name', 'logo', 'hero'];
     protected $casts    = ['hero' => 'array'];
     protected $appends  = ['logo_url', 'hero_urls'];
 
     public function getLogoUrlAttribute()
     {
-        if (!$this->logo) return null;
-        return str_starts_with($this->logo, 'http') ? $this->logo : asset('storage/' . $this->logo);
+        return $this->imageUrl($this->logo);
     }
 
     public function getHeroUrlsAttribute()
     {
         if (!$this->hero) return [];
-        return array_map(function($path) {
-            return str_starts_with($path, 'http') ? $path : asset('storage/' . $path);
-        }, $this->hero);
+        return array_map(fn($path) => $this->imageUrl($path), $this->hero);
     }
 }

@@ -11,6 +11,16 @@ echo "nameserver 8.8.4.4" | tee -a /etc/resolv.conf || true
 # Enter the application directory
 cd /var/www/html
 
+# Clear any cached configurations to ensure fresh settings are applied
+if [ -f artisan ]; then
+    echo "Clearing Laravel caches..."
+    php artisan config:clear
+    php artisan route:clear
+    php artisan view:clear
+fi
+
+# Fix permissions at runtime (ensures mount is writeable by web server)
+
 # Fix permissions at runtime (ensures mount is writeable by web server)
 echo "Fixing storage permissions..."
 chown -R www-data:www-data storage bootstrap/cache

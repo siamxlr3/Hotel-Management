@@ -9,6 +9,8 @@ use Illuminate\Support\Str;
 
 class StaffService
 {
+    public function __construct(private CloudinaryService $cloudinary) {}
+
     public function getAll(array $filters): LengthAwarePaginator
     {
         $query = Staff::with(['role', 'shift']);
@@ -50,7 +52,7 @@ class StaffService
     public function create(array $data): Staff
     {
         if (isset($data['image']) && $data['image'] instanceof \Illuminate\Http\UploadedFile) {
-            $data['image'] = $data['image']->store('staff', 'public');
+            $data['image'] = $this->cloudinary->upload($data['image'], 'staff');
         }
 
         return Staff::create($data);
@@ -59,17 +61,13 @@ class StaffService
     public function update(Staff $staff, array $data): Staff
     {
         if (!empty($data['remove_image']) && $data['remove_image'] == 1) {
-            if ($staff->image) {
-                Storage::disk('public')->delete($staff->image);
-            }
+            $this->smartDeleteImage($staff->image);
             $data['image'] = null;
         }
 
         if (isset($data['image']) && $data['image'] instanceof \Illuminate\Http\UploadedFile) {
-            if ($staff->image) {
-                Storage::disk('public')->delete($staff->image);
-            }
-            $data['image'] = $data['image']->store('staff', 'public');
+            $this->smartDeleteImage($staff->image);
+            $data['image'] = $this->cloudinary->upload($data['image'], 'staff');
         }
 
         $staff->update($data);
@@ -78,7 +76,18 @@ class StaffService
 
     public function delete(Staff $staff): void
     {
-        // Image deletion handled by model boot method
+        $this->smartDeleteImage($staff->image);
         $staff->delete();
+    }
+
+    private function smartDeleteImage(?string $image): void
+    {
+        if (!$image) return;
+
+        if (filter_var($image, FILTER_VALIDATE_URL)) {
+            $this->cloudinary->delete($image);
+        } else {
+            Storage::disk('public')->delete($image);
+        }
     }
 }

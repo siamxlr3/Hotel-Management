@@ -14,10 +14,8 @@ trait HandlesImageUpload
         string $folder,
         ?string $oldPath = null
     ): string {
-        if ($oldPath && Storage::disk('public')->exists($oldPath)) {
-            Storage::disk('public')->delete($oldPath);
-        }
-        return $file->store($folder, 'public');
+        $this->deleteImage($oldPath);
+        return app(\App\Services\CloudinaryService::class)->upload($file, $folder);
     }
 
     /**
@@ -32,24 +30,30 @@ trait HandlesImageUpload
         array $oldPaths = []
     ): array {
         foreach ($oldPaths as $old) {
-            if ($old && Storage::disk('public')->exists($old)) {
-                Storage::disk('public')->delete($old);
-            }
+            $this->deleteImage($old);
         }
+        
         $paths = [];
+        $cloudinary = app(\App\Services\CloudinaryService::class);
         foreach ($files as $file) {
-            $paths[] = $file->store($folder, 'public');
+            $paths[] = $cloudinary->upload($file, $folder);
         }
         return $paths;
     }
 
     /**
-     * Delete a single image from storage.
+     * Delete a single image from storage (Smart Delete).
      */
     protected function deleteImage(?string $path): void
     {
-        if ($path && Storage::disk('public')->exists($path)) {
-            Storage::disk('public')->delete($path);
+        if (!$path) return;
+
+        if (filter_var($path, FILTER_VALIDATE_URL) || str_starts_with($path, 'http')) {
+            app(\App\Services\CloudinaryService::class)->delete($path);
+        } else {
+            if (Storage::disk('public')->exists($path)) {
+                Storage::disk('public')->delete($path);
+            }
         }
     }
 
@@ -64,10 +68,11 @@ trait HandlesImageUpload
     }
 
     /**
-     * Build full public URL for a stored path.
+     * Build full public URL for a stored path (Smart URL).
      */
     protected function imageUrl(?string $path): ?string
     {
-        return $path ? Storage::disk('public')->url($path) : null;
+        if (!$path) return null;
+        return str_starts_with($path, 'http') ? $path : Storage::disk('public')->url($path);
     }
 }

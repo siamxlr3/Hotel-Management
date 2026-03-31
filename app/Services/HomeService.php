@@ -18,12 +18,10 @@ class HomeService
     public function create(array $data, Request $request): Home
     {
         if ($request->hasFile('logo')) {
-            $data['logo'] = $request->file('logo')->store('logo', 'public');
+            $data['logo'] = $this->storeImage($request->file('logo'), 'logo');
         }
         if ($request->hasFile('hero')) {
-            $data['hero'] = $this->storeMultipleImages(
-                $request->file('hero'), 'hero'
-            );
+            $data['hero'] = $this->storeMultipleImages($request->file('hero'), 'hero');
         }
 
         return Home::create($data);

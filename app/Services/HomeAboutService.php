@@ -18,7 +18,7 @@ class HomeAboutService
     public function create(array $data, Request $request): HomeAbout
     {
         if ($request->hasFile('image')) {
-            $data['image'] = $request->file('image')->store('about', 'public');
+            $data['image'] = $this->storeImage($request->file('image'), 'about');
         }
 
         return HomeAbout::create($data);

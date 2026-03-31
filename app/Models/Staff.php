@@ -16,6 +16,8 @@ class Staff extends Model
         'shift_id', 'joined_at', 'status'
     ];
 
+    protected $appends = ['image_url'];
+
     protected $casts = [
         'joined_at' => 'date',
         'salary' => 'decimal:2',
@@ -52,20 +54,7 @@ class Staff extends Model
      */
     public function getImageUrlAttribute()
     {
-        return $this->image ? asset('storage/' . $this->image) : null;
-    }
-
-    /**
-     * Delete image from storage when deleting staff or updating image.
-     */
-    public static function boot()
-    {
-        parent::boot();
-
-        static::deleting(function ($staff) {
-            if ($staff->image) {
-                Storage::disk('public')->delete($staff->image);
-            }
-        });
+        if (!$this->image) return null;
+        return str_starts_with($this->image, 'http') ? $this->image : asset('storage/' . $this->image);
     }
 }

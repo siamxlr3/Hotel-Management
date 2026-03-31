@@ -18,13 +18,7 @@ class StaffController extends Controller
         try {
             $data = $this->service->getAll($request->all());
             
-            // Transform the collection safely
-            $data->getCollection()->transform(function($staff) {
-                // Ensure image_url is appended for frontend
-                $staff->image_url = $staff->image ? asset('storage/' . $staff->image) : null;
-                return $staff;
-            });
-
+            // Return the items directly as the appends property handles image_url
             return response()->json([
                 'success' => true,
                 'data' => $data->items(),
@@ -53,7 +47,6 @@ class StaffController extends Controller
     public function show(Staff $staff): JsonResponse
     {
         $staff->load(['role', 'shift']);
-        $staff->image_url = $staff->image ? asset('storage/' . $staff->image) : null;
         return response()->json(['success' => true, 'data' => $staff]);
     }
 

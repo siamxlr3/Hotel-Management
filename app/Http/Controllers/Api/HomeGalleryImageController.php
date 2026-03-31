@@ -18,20 +18,11 @@ class HomeGalleryImageController extends Controller
                 'per_page'=>$p->perPage(),'total'=>$p->total()];
     }
 
-    private function transform(HomeGalleryImage $g): array {
-        $arr = $g->toArray();
-        $arr['gallery_urls'] = array_map(
-            fn($p) => "/storage/{$p}",
-            $g->gallery ?? []
-        );
-        return $arr;
-    }
-
     public function index(Request $request): JsonResponse {
         try {
             $data = $this->service->getAll($request->all());
             return response()->json(['success'=>true,
-                'data'=>array_map(fn($g)=>$this->transform($g),$data->items()),
+                'data'=>$data->items(),
                 'meta'=>$this->meta($data)]);
         } catch (\Exception $e) {
             return response()->json(['success'=>false,'message'=>$e->getMessage()],500);
@@ -40,19 +31,19 @@ class HomeGalleryImageController extends Controller
     public function store(HomeGalleryImageRequest $request): JsonResponse {
         try {
             $gallery = $this->service->create($request->validated(), $request);
-            return response()->json(['success'=>true,'data'=>$this->transform($gallery),
+            return response()->json(['success'=>true,'data'=>$gallery,
                 'message'=>'Gallery created.'],201);
         } catch (\Exception $e) {
             return response()->json(['success'=>false,'message'=>$e->getMessage()],500);
         }
     }
     public function show(HomeGalleryImage $homeGallery): JsonResponse {
-        return response()->json(['success'=>true,'data'=>$this->transform($homeGallery)]);
+        return response()->json(['success'=>true,'data'=>$homeGallery]);
     }
     public function update(HomeGalleryImageRequest $request, HomeGalleryImage $homeGallery): JsonResponse {
         try {
             $updated = $this->service->update($homeGallery, $request->validated(), $request);
-            return response()->json(['success'=>true,'data'=>$this->transform($updated),
+            return response()->json(['success'=>true,'data'=>$updated,
                 'message'=>'Gallery updated.']);
         } catch (\Exception $e) {
             return response()->json(['success'=>false,'message'=>$e->getMessage()],500);

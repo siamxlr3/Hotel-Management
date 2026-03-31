@@ -12,4 +12,11 @@ class HomeOffer extends Model
         'start_date' => 'date',
         'end_date'   => 'date',
     ];
+    protected $appends  = ['image_url'];
+
+    public function getImageUrlAttribute()
+    {
+        if (!$this->image) return null;
+        return str_starts_with($this->image, 'http') ? $this->image : asset('storage/' . $this->image);
+    }
 }

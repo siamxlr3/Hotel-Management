@@ -20,22 +20,12 @@ class HomeController extends Controller
                 'per_page'=>$p->perPage(),'total'=>$p->total()];
     }
 
-    private function transform(Home $h): array {
-        $a = $h->toArray();
-        $a['logo_url']  = $h->logo  ? "/storage/{$h->logo}"  : null;
-        $a['hero_urls'] = array_map(
-            fn($p) => "/storage/{$p}",
-            $h->hero ?? []
-        );
-        return $a;
-    }
-
     public function index(Request $request): JsonResponse {
         try {
             $data = $this->service->getAll($request->all());
             return response()->json([
                 'success' => true,
-                'data'    => array_map(fn($h) => $this->transform($h), $data->items()),
+                'data'    => $data->items(),
                 'meta'    => $this->meta($data),
             ]);
         } catch (\Exception $e) {
@@ -46,7 +36,7 @@ class HomeController extends Controller
     public function store(HomeRequest $request): JsonResponse {
         try {
             $home = $this->service->create($request->validated(), $request);
-            return response()->json(['success'=>true,'data'=>$this->transform($home),
+            return response()->json(['success'=>true,'data'=>$home,
                 'message'=>'Home created.'], 201);
         } catch (\Exception $e) {
             return response()->json(['success'=>false,'message'=>$e->getMessage()], 500);
@@ -54,13 +44,13 @@ class HomeController extends Controller
     }
 
     public function show(Home $home): JsonResponse {
-        return response()->json(['success'=>true,'data'=>$this->transform($home)]);
+        return response()->json(['success'=>true,'data'=>$home]);
     }
 
     public function update(HomeRequest $request, Home $home): JsonResponse {
         try {
             $updated = $this->service->update($home, $request->validated(), $request);
-            return response()->json(['success'=>true,'data'=>$this->transform($updated),
+            return response()->json(['success'=>true,'data'=>$updated,
                 'message'=>'Home updated.']);
         } catch (\Exception $e) {
             return response()->json(['success'=>false,'message'=>$e->getMessage()], 500);

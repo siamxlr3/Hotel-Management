@@ -22,7 +22,7 @@ class HomeOfferService
     public function create(array $data, Request $request): HomeOffer
     {
         if ($request->hasFile('image')) {
-            $data['image'] = $request->file('image')->store('offer', 'public');
+            $data['image'] = $this->storeImage($request->file('image'), 'offer');
         }
 
         return HomeOffer::create($data);

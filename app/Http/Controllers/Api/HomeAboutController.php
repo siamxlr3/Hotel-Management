@@ -18,17 +18,11 @@ class HomeAboutController extends Controller
                 'per_page'=>$p->perPage(),'total'=>$p->total()];
     }
 
-    private function transform(HomeAbout $a): array {
-        $arr = $a->toArray();
-        $arr['image_url'] = $a->image ? "/storage/{$a->image}" : null;
-        return $arr;
-    }
-
     public function index(Request $request): JsonResponse {
         try {
             $data = $this->service->getAll($request->all());
             return response()->json(['success'=>true,
-                'data'=>array_map(fn($a)=>$this->transform($a),$data->items()),
+                'data'=>$data->items(),
                 'meta'=>$this->meta($data)]);
         } catch (\Exception $e) {
             return response()->json(['success'=>false,'message'=>$e->getMessage()],500);
@@ -38,7 +32,7 @@ class HomeAboutController extends Controller
     public function store(HomeAboutRequest $request): JsonResponse {
         try {
             $about = $this->service->create($request->validated(), $request);
-            return response()->json(['success'=>true,'data'=>$this->transform($about),
+            return response()->json(['success'=>true,'data'=>$about,
                 'message'=>'About section created.'],201);
         } catch (\Exception $e) {
             return response()->json(['success'=>false,'message'=>$e->getMessage()],500);
@@ -46,13 +40,13 @@ class HomeAboutController extends Controller
     }
 
     public function show(HomeAbout $homeAbout): JsonResponse {
-        return response()->json(['success'=>true,'data'=>$this->transform($homeAbout)]);
+        return response()->json(['success'=>true,'data'=>$homeAbout]);
     }
 
     public function update(HomeAboutRequest $request, HomeAbout $homeAbout): JsonResponse {
         try {
             $updated = $this->service->update($homeAbout, $request->validated(), $request);
-            return response()->json(['success'=>true,'data'=>$this->transform($updated),
+            return response()->json(['success'=>true,'data'=>$updated,
                 'message'=>'About section updated.']);
         } catch (\Exception $e) {
             return response()->json(['success'=>false,'message'=>$e->getMessage()],500);

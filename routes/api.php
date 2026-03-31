@@ -75,6 +75,32 @@ Route::middleware('api')->group(function () {
     // Category Discounts
     Route::apiResource('category-discounts', CategoryDiscountController::class);
 
+    // Diagnostic endpoint
+    Route::get('debug-storage', function () {
+        return response()->json([
+            'storage_path' => storage_path('app/public'),
+            'storage_is_dir' => is_dir(storage_path('app/public')),
+            'storage_is_writable' => is_writable(storage_path('app/public')),
+            'storage_owner' => fileowner(storage_path('app/public')),
+            'storage_files' => is_dir(storage_path('app/public')) ? scandir(storage_path('app/public')) : 'not a dir',
+            'mount_info' => shell_exec('mount | grep /var/www/html/storage'),
+            'public_storage_is_link' => is_link(public_path('storage')),
+            'public_storage_target' => is_link(public_path('storage')) ? readlink(public_path('storage')) : 'not a link',
+            'room_folder_exists' => is_dir(storage_path('app/public/room')),
+            'persistence_test_check' => file_exists(storage_path('app/public/persistence_test.txt')) ? 'Found: ' . file_get_contents(storage_path('app/public/persistence_test.txt')) : 'Not found',
+            'write_test_successful' => (function() {
+                try {
+                    $path = storage_path('app/public/persistence_test.txt');
+                    file_put_contents($path, 'Test at ' . now() . ' (Random: '.rand(1000,9999).')');
+                    return 'Yes: ' . file_get_contents($path);
+                } catch (\Exception $e) {
+                    return 'Error: ' . $e->getMessage();
+                }
+            })(),
+            'php_version' => PHP_VERSION,
+        ]);
+    });
+
     // Helper dropdowns
     Route::get('rooms-dropdown', function () {
         return response()->json([

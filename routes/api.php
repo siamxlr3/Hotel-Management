@@ -49,6 +49,11 @@ Route::get('/debug-db', function () {
         'resolved_ip' => gethostbyname($host),
         'server_ip' => $_SERVER['SERVER_ADDR'] ?? 'unknown',
         'filesystem' => env('FILESYSTEM_DISK', 'not set'),
+        'storage_path' => storage_path('app/public'),
+        'storage_is_dir' => is_dir(storage_path('app/public')),
+        'storage_is_writable' => is_writable(storage_path('app/public')),
+        'public_storage_is_link' => is_link(public_path('storage')),
+        'room_folder_exists' => is_dir(storage_path('app/public/room')),
         'php_version' => PHP_VERSION,
     ]);
 });

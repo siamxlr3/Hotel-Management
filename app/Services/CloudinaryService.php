@@ -54,6 +54,7 @@ class CloudinaryService
             $signature = sha1($paramString . $this->apiSecret);
 
             $response = $this->client->post("https://api.cloudinary.com/v1_1/{$this->cloudName}/image/upload", [
+                'verify' => false,
                 'multipart' => [
                     [
                         'name'     => 'file',
@@ -66,6 +67,7 @@ class CloudinaryService
                     ['name' => 'folder',    'contents' => $folder],
                 ],
             ]);
+
 
             $result = json_decode($response->getBody()->getContents(), true);
             return $result['secure_url'] ?? null;

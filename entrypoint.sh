@@ -23,6 +23,7 @@ fi
 
 # Fix permissions at runtime (ensures mount is writeable by web server)
 echo "Fixing storage permissions..."
+mkdir -p storage/app/public/room storage/app/public/hero storage/app/public/logo storage/app/public/offer storage/app/public/staff storage/app/public/about
 chown -R www-data:www-data storage bootstrap/cache
 chmod -R 775 storage bootstrap/cache
 

@@ -41,33 +41,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
 });
 
-// Diagnostic route
-Route::get('/debug-db', function () {
-    $host = env('DB_HOST', 'not set');
-    return response()->json([
-        'db_host' => $host,
-        'resolved_ip' => gethostbyname($host),
-        'server_ip' => $_SERVER['SERVER_ADDR'] ?? 'unknown',
-        'filesystem' => config('filesystems.default'),
-        'env_filesystem' => env('FILESYSTEM_DISK', 'not set'),
-        'storage_path' => storage_path('app/public'),
-        'storage_is_dir' => is_dir(storage_path('app/public')),
-        'storage_is_writable' => is_writable(storage_path('app/public')),
-        'public_storage_is_link' => is_link(public_path('storage')),
-        'public_storage_target' => is_link(public_path('storage')) ? readlink(public_path('storage')) : 'not a link',
-        'room_folder_exists' => is_dir(storage_path('app/public/room')),
-        'write_test_successful' => (function() {
-            try {
-                $path = storage_path('app/public/persistence_test.txt');
-                file_put_contents($path, 'Test at ' . now());
-                return file_exists($path) ? 'Yes: ' . file_get_contents($path) : 'No (file_exists failed)';
-            } catch (\Exception $e) {
-                return 'Error: ' . $e->getMessage();
-            }
-        })(),
-        'php_version' => PHP_VERSION,
-    ]);
-});
 
 Route::middleware('api')->group(function () {
     Route::apiResource('cms/home',           HomeController::class);

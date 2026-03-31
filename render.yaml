@@ -9,6 +9,12 @@ services:
       name: hotel-storage
       mountPath: /var/www/html/storage/app/public
       sizeGB: 1
+
+    envVars:
+      - key: FILESYSTEM_DISK
+        value: public
+      - key: APP_URL
+        value: https://hotel-management-bkt0.onrender.com
     envVars:
       - key: DOCUMENT_ROOT
         value: /var/www/html/public

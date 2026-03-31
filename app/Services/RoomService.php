@@ -2,12 +2,12 @@
 namespace App\Services;
 
 use App\Models\Room;
+use App\Traits\HandlesImageUpload;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Facades\Storage;
 
 class RoomService
 {
-    public function __construct(private CloudinaryService $cloudinary) {}
+    use HandlesImageUpload;
 
     public function getAll(array $filters): LengthAwarePaginator
     {
@@ -37,7 +37,7 @@ class RoomService
     public function create(array $data): Room
     {
         if (isset($data['new_images']) && is_array($data['new_images'])) {
-            $data['images'] = $this->uploadImages($data['new_images']);
+            $data['images'] = $this->storeMultipleImages($data['new_images'], 'room');
         }
 
         // Clean up data to avoid passing file objects to create
@@ -52,18 +52,13 @@ class RoomService
         $existingPaths = $data['existing_images'] ?? [];
         $newFiles      = $data['new_images'] ?? [];
 
-        // 1. Identify images to delete (those NOT in existingPaths)
-        $currentImages = $room->images ?? [];
-        $toDelete      = array_diff($currentImages, $existingPaths);
-        $this->deleteImages($toDelete);
+        // 1. Image management via Trait
+        $newPaths = $this->storeMultipleImages($newFiles, 'room', array_diff($room->images ?? [], $existingPaths));
 
-        // 2. Upload new ones
-        $newPaths = $this->uploadImages($newFiles);
-
-        // 3. Combine remaining and new paths
+        // 2. Combine remaining and new paths
         $data['images'] = array_merge($existingPaths, $newPaths);
 
-        // Clean up data to avoid passing file objects/redundant paths to update
+        // Clean up data
         unset($data['new_images'], $data['existing_images']);
 
         $room->update($data);
@@ -72,33 +67,7 @@ class RoomService
 
     public function delete(Room $room): void
     {
-        $this->deleteImages($room->images);
+        $this->deleteImages($room->images ?? []);
         $room->delete();
-    }
-
-    private function uploadImages(array $files): array
-    {
-        $urls = [];
-        foreach ($files as $file) {
-            $url = $this->cloudinary->upload($file, 'room');
-            if ($url) {
-                $urls[] = $url;
-            }
-        }
-        return $urls;
-    }
-
-    private function deleteImages(?array $images): void
-    {
-        if ($images) {
-            foreach ($images as $image) {
-                // Only delete from Cloudinary if it's a full URL
-                if (filter_var($image, FILTER_VALIDATE_URL)) {
-                    $this->cloudinary->delete($image);
-                } else {
-                    Storage::disk('public')->delete($image);
-                }
-            }
-        }
     }
 }

@@ -14,16 +14,18 @@ trait HandlesImageUpload
         string $folder,
         ?string $oldPath = null
     ): string {
-        $this->deleteImage($oldPath);
-        return app(\App\Services\CloudinaryService::class)->upload($file, $folder);
+        if ($oldPath) $this->deleteImage($oldPath);
+        
+        $cloudinary = app(\App\Services\CloudinaryService::class);
+        if ($cloudinary->isReady()) {
+            $url = $cloudinary->upload($file, $folder);
+            if ($url) return $url;
+        }
+
+        // Fallback to local storage
+        return $file->store($folder, 'public');
     }
 
-    /**
-     * Store multiple images and delete the old ones.
-     * @param  UploadedFile[] $files
-     * @param  string[]       $oldPaths
-     * @return string[]
-     */
     protected function storeMultipleImages(
         array $files,
         string $folder,
@@ -35,8 +37,16 @@ trait HandlesImageUpload
         
         $paths = [];
         $cloudinary = app(\App\Services\CloudinaryService::class);
+        $isCloudReady = $cloudinary->isReady();
+
         foreach ($files as $file) {
-            $paths[] = $cloudinary->upload($file, $folder);
+            $uploadedPath = null;
+            if ($isCloudReady) {
+                $uploadedPath = $cloudinary->upload($file, $folder);
+            }
+            
+            // Fallback to local if cloud fails or not ready
+            $paths[] = $uploadedPath ?? $file->store($folder, 'public');
         }
         return $paths;
     }

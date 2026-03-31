@@ -3,13 +3,12 @@
 namespace App\Services;
 
 use App\Models\Staff;
+use App\Traits\HandlesImageUpload;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 
 class StaffService
 {
-    public function __construct(private CloudinaryService $cloudinary) {}
+    use HandlesImageUpload;
 
     public function getAll(array $filters): LengthAwarePaginator
     {
@@ -52,7 +51,7 @@ class StaffService
     public function create(array $data): Staff
     {
         if (isset($data['image']) && $data['image'] instanceof \Illuminate\Http\UploadedFile) {
-            $data['image'] = $this->cloudinary->upload($data['image'], 'staff');
+            $data['image'] = $this->storeImage($data['image'], 'staff');
         }
 
         return Staff::create($data);
@@ -61,13 +60,12 @@ class StaffService
     public function update(Staff $staff, array $data): Staff
     {
         if (!empty($data['remove_image']) && $data['remove_image'] == 1) {
-            $this->smartDeleteImage($staff->image);
+            $this->deleteImage($staff->image);
             $data['image'] = null;
         }
 
         if (isset($data['image']) && $data['image'] instanceof \Illuminate\Http\UploadedFile) {
-            $this->smartDeleteImage($staff->image);
-            $data['image'] = $this->cloudinary->upload($data['image'], 'staff');
+            $data['image'] = $this->storeImage($data['image'], 'staff', $staff->image);
         }
 
         $staff->update($data);
@@ -76,18 +74,7 @@ class StaffService
 
     public function delete(Staff $staff): void
     {
-        $this->smartDeleteImage($staff->image);
+        $this->deleteImage($staff->image);
         $staff->delete();
-    }
-
-    private function smartDeleteImage(?string $image): void
-    {
-        if (!$image) return;
-
-        if (filter_var($image, FILTER_VALIDATE_URL)) {
-            $this->cloudinary->delete($image);
-        } else {
-            Storage::disk('public')->delete($image);
-        }
     }
 }

@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Storage;
 
 class RoomService
 {
+    public function __construct(private CloudinaryService $cloudinary) {}
+
     public function getAll(array $filters): LengthAwarePaginator
     {
         $query = Room::with('category:id,name,status');
@@ -76,18 +78,26 @@ class RoomService
 
     private function uploadImages(array $files): array
     {
-        $paths = [];
+        $urls = [];
         foreach ($files as $file) {
-            $paths[] = Storage::disk('public')->put('room', $file);
+            $url = $this->cloudinary->upload($file, 'room');
+            if ($url) {
+                $urls[] = $url;
+            }
         }
-        return $paths;
+        return $urls;
     }
 
     private function deleteImages(?array $images): void
     {
         if ($images) {
             foreach ($images as $image) {
-                Storage::disk('public')->delete($image);
+                // Only delete from Cloudinary if it's a full URL
+                if (filter_var($image, FILTER_VALIDATE_URL)) {
+                    $this->cloudinary->delete($image);
+                } else {
+                    Storage::disk('public')->delete($image);
+                }
             }
         }
     }

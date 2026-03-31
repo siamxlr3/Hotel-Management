@@ -17,3 +17,9 @@ services:
         value: https://hotel-management-bkt0.onrender.com
       - key: DOCUMENT_ROOT
         value: /var/www/html/public
+      - key: CLOUDINARY_CLOUD_NAME
+        value: dgsmvky0e
+      - key: CLOUDINARY_API_KEY
+        value: "733569438277471"
+      - key: CLOUDINARY_API_SECRET
+        value: 1BH4GDfkT-2kHVI_bj4md5GfxaI

@@ -11,10 +11,13 @@ echo "nameserver 8.8.4.4" | tee -a /etc/resolv.conf || true
 # Enter the application directory
 cd /var/www/html
 
-# Create the storage link at runtime 
+# Force-clean and recreate the storage link at runtime 
+# This ensures that even if 'public/storage' exists from a previous build, 
+# it gets replaced by the correct symlink to the persistent volume.
 if [ -f artisan ]; then
-    echo "Creating storage link..."
-    php artisan storage:link --force || echo "Storage link already exists or failed."
+    echo "Recreating storage symlink..."
+    rm -rf public/storage
+    php artisan storage:link --force || echo "Storage link creation failed."
 else
     echo "Warning: artisan file not found at $(pwd)"
 fi

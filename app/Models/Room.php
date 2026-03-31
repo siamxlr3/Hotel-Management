@@ -14,6 +14,15 @@ class Room extends Model
         'capacity', 'features', 'images', 'floor', 'status',
     ];
 
+    protected $appends = ['image_urls'];
+
+    public function getImageUrlsAttribute()
+    {
+        return array_map(function($path) {
+            return str_starts_with($path, 'http') ? $path : asset('storage/' . $path);
+        }, $this->images ?? []);
+    }
+
     protected $casts = [
         'features'   => 'array',
         'images'     => 'array',

@@ -8,9 +8,9 @@ use Illuminate\Support\Facades\Log;
 
 class CloudinaryService
 {
-    protected string $cloudName;
-    protected string $apiKey;
-    protected string $apiSecret;
+    protected ?string $cloudName;
+    protected ?string $apiKey;
+    protected ?string $apiSecret;
     protected Client $client;
 
     public function __construct()
@@ -19,6 +19,11 @@ class CloudinaryService
         $this->apiKey    = env('CLOUDINARY_API_KEY');
         $this->apiSecret = env('CLOUDINARY_API_SECRET');
         $this->client    = new Client();
+    }
+
+    public function isReady(): bool
+    {
+        return !empty($this->cloudName) && !empty($this->apiKey) && !empty($this->apiSecret);
     }
 
     /**
@@ -30,6 +35,11 @@ class CloudinaryService
      */
     public function upload(UploadedFile $file, string $folder): ?string
     {
+        if (!$this->isReady()) {
+            Log::warning('Cloudinary Upload Skipped: Configuration missing.');
+            return null;
+        }
+
         try {
             $timestamp = time();
             $params = [
@@ -73,6 +83,11 @@ class CloudinaryService
     public function delete(?string $url): bool
     {
         if (!$url) return false;
+
+        if (!$this->isReady()) {
+            Log::warning('Cloudinary Delete Skipped: Configuration missing.');
+            return false;
+        }
 
         try {
             // Extract public_id from secure_url

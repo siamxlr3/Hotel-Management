@@ -11,6 +11,11 @@ echo "nameserver 8.8.4.4" | tee -a /etc/resolv.conf || true
 # Enter the application directory
 cd /var/www/html
 
+# Fix permissions at runtime (ensures mount is writeable by web server)
+echo "Fixing storage permissions..."
+chown -R www-data:www-data storage bootstrap/cache
+chmod -R 775 storage bootstrap/cache
+
 # Force-clean and recreate the storage link at runtime 
 # This ensures that even if 'public/storage' exists from a previous build, 
 # it gets replaced by the correct symlink to the persistent volume.

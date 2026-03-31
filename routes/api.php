@@ -48,6 +48,7 @@ Route::get('/debug-db', function () {
         'db_host' => $host,
         'resolved_ip' => gethostbyname($host),
         'server_ip' => $_SERVER['SERVER_ADDR'] ?? 'unknown',
+        'filesystem' => env('FILESYSTEM_DISK', 'not set'),
         'php_version' => PHP_VERSION,
     ]);
 });

@@ -12,8 +12,8 @@ class HomeOffer extends Model
     protected $fillable = ['title','description','discount','image','start_date','end_date'];
     protected $casts    = [
         'discount'   => 'decimal:2',
-        'start_date' => 'date',
-        'end_date'   => 'date',
+        'start_date' => 'date:Y-m-d',
+        'end_date'   => 'date:Y-m-d',
     ];
     protected $appends  = ['image_url'];
 

@@ -9,11 +9,20 @@ class HomeGalleryImageRequest extends FormRequest
     {
         return [
             'gallery' => 'required|array',
-            'gallery.*' => 'image|mimes:jpg,jpeg,png,webp|max:10240',
+            'gallery.*' => 'image|mimes:jpg,jpeg,png,webp',
             'keep_gallery'      => 'nullable|array',
             'keep_gallery.*'    => 'string',
             'remove_gallery'    => 'nullable|array',
             'remove_gallery.*'  => 'string',
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'gallery.*.image'   => 'One or more of the selected files is not a valid image.',
+            'gallery.*.mimes'   => 'Gallery images must be in JPG, PNG, or WebP format.',
+            'gallery.*.uploaded'=> 'An image failed to upload. Please ensure your files are not too large and try again.',
         ];
     }
 }

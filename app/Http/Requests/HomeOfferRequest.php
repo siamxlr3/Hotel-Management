@@ -11,7 +11,7 @@ class HomeOfferRequest extends FormRequest
             'title'       => 'required|string|max:200',
             'description' => 'required|string',
             'discount'    => 'required|numeric|min:0|max:100',
-            'image'       => 'nullable|image|mimes:jpg,jpeg,png,webp|max:10240',
+            'image'       => 'nullable|image|mimes:jpg,jpeg,png,webp',
             'start_date'  => 'nullable|date',
             'end_date'    => 'nullable|date|after_or_equal:start_date',
         ];
@@ -20,6 +20,9 @@ class HomeOfferRequest extends FormRequest
     {
         return [
             'end_date.after_or_equal' => 'End date must be after or equal to start date.',
+            'image.image'    => 'The uploaded file must be a valid image.',
+            'image.mimes'    => 'The image must be in JPG, PNG, or WebP format.',
+            'image.uploaded' => 'The image failed to upload. Please try a different file or ensure it is not too large.',
         ];
     }
 }

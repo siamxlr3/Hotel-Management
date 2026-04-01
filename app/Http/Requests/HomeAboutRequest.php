@@ -9,7 +9,16 @@ class HomeAboutRequest extends FormRequest
     {
         return [
             'description' => 'required|string',
-            'image'       => 'nullable|image|mimes:jpg,jpeg,png,webp|max:10240',
+            'image'       => 'nullable|image|mimes:jpg,jpeg,png,webp',
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'image.image'    => 'The uploaded file must be a valid image.',
+            'image.mimes'    => 'The image must be in JPG, PNG, or WebP format.',
+            'image.uploaded' => 'The image failed to upload. Please ensure the file is not corrupted or too large.',
         ];
     }
 }

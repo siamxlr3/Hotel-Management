@@ -403,7 +403,7 @@ function RoomForm({ initial, categories = [], onSave, onCancel, loading }) {
                 <MdAdd size={24} className="text-gray-400 group-hover:text-[#2D3A2E]"/>
               </div>
               <p className="text-sm font-semibold text-gray-600">{t('Drop images here or click to browse')}</p>
-              <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-wide">{t('JPG, PNG, WebP (Max 2MB per file)')}</p>
+              <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-wide">{t('JPG, PNG, WebP')}</p>
             </div>
           </div>
 

@@ -25,7 +25,7 @@ class RoomRequest extends FormRequest
             'existing_images' => 'nullable|array',
             'existing_images.*' => 'string',
             'new_images'      => 'nullable|array',
-            'new_images.*'    => 'image|mimes:jpg,jpeg,png,webp|max:2048',
+            'new_images.*'    => 'image|mimes:jpg,jpeg,png,webp',
             'floor'           => [$req, 'required', 'integer', 'min:1', 'max:200'],
             'status'          => [$req, 'required', 'in:Available,Occupied,Reserved,Maintenance,Cleaning'],
         ];
@@ -40,6 +40,9 @@ class RoomRequest extends FormRequest
             'room_number.unique'   => 'This room number already exists.',
             'category_id.exists'   => 'Selected category does not exist.',
             'base_price.min'       => 'Price cannot be negative.',
+            'new_images.*.image'   => 'One or more of the selected files is not a valid image.',
+            'new_images.*.mimes'   => 'Room images must be in JPG, PNG, or WebP format.',
+            'new_images.*.uploaded'=> 'An image failed to upload. Please ensure your files are not too large and try again.',
         ];
     }
 }

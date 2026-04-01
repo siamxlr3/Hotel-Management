@@ -745,8 +745,8 @@ function OfferForm({ initial, onSave, onCancel, loading }) {
     title:       initial?.title       || '',
     description: initial?.description || '',
     discount:    initial?.discount    || '',
-    start_date:  initial?.start_date  || '',
-    end_date:    initial?.end_date    || '',
+    start_date:  initial?.start_date ? String(initial.start_date).substring(0, 10) : '',
+    end_date:    initial?.end_date   ? String(initial.end_date).substring(0, 10)   : '',
   });
   const [imgFile,    setImgFile]    = useState(null);
   const [imgPreview, setImgPreview] = useState(initial?.image_url || null);

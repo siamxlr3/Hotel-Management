@@ -410,10 +410,10 @@ const Home = () => {
                         >
                             {/* Nested Image Slider */}
                             <div className="relative aspect-[16/11] mb-8 overflow-hidden rounded-[2rem]">
-                                {room.images?.length > 0 ? (
+                                {room.image_urls?.length > 0 ? (
                                     <Slider
                                         dots={true}
-                                        infinite={room.images.length > 1}
+                                        infinite={room.image_urls.length > 1}
                                         speed={500}
                                         slidesToShow={1}
                                         slidesToScroll={1}
@@ -423,10 +423,10 @@ const Home = () => {
                                         className="h-full inner-slick"
                                         dotsClass="slick-dots custom-dots"
                                     >
-                                        {room.images.map((img, idx) => (
+                                        {room.image_urls.map((img, idx) => (
                                             <div key={idx} className="h-full aspect-[16/11] outline-none">
                                                 <img 
-                                                    src={`/storage/${img}`} 
+                                                    src={img} 
                                                     alt={`Room ${room.room_number}`} 
                                                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
                                                 />
@@ -647,7 +647,7 @@ const Home = () => {
                             className="relative w-full overflow-hidden rounded-[1.5rem] shadow-lg min-h-[280px] sm:min-h-[400px] lg:min-h-[500px]"
                         >
                             <img 
-                                    src={`/storage/${(aboutData?.[0] || aboutData?.data?.[0]).image}`} 
+                                    src={(aboutData?.[0] || aboutData?.data?.[0]).image_url} 
                                     alt="About Us" 
                                     className="w-full h-full object-cover absolute inset-0"
                                 />
@@ -795,7 +795,7 @@ const Home = () => {
                                                     className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 group hover:shadow-xl transition-all duration-500 h-full flex flex-col cursor-pointer"
                                                 >
                                                     <div className="relative h-64 overflow-hidden flex-shrink-0">
-                                                        <img src={`/storage/${offer.image}`} alt={offer.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                                                        <img src={offer.image_url} alt={offer.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                                                         <div className="absolute top-4 left-4 bg-[#B59441] text-white text-[10px] font-bold px-3 py-1 rounded-lg uppercase tracking-[0.2em] shadow-lg">
                                                             {parseFloat(offer.discount)}% OFF
                                                         </div>
@@ -839,8 +839,8 @@ const Home = () => {
                             <div className="col-span-2 md:col-span-1 border border-gray-100/20 rounded-2xl overflow-hidden shadow-md bg-gray-100 animate-pulse"></div>
                             <div className="hidden md:block rounded-2xl overflow-hidden shadow-md bg-gray-100 animate-pulse"></div>
                         </>
-                    ) : galleryData && galleryData.length > 0 && galleryData[0].gallery ? (
-                        galleryData[0].gallery.slice(0, 5).map((imagePath, i) => {
+                    ) : galleryData && galleryData.length > 0 && galleryData[0].gallery_urls ? (
+                        galleryData[0].gallery_urls.slice(0, 5).map((imagePath, i) => {
                             // Define the specific classes for each index to maintain the masonry layout
                             const classes = [
                                 "col-span-2 row-span-2 rounded-2xl overflow-hidden shadow-lg", // 0: Large left image
@@ -856,7 +856,7 @@ const Home = () => {
                             return (
                                 <div key={i} className={className}>
                                     <img 
-                                        src={`/storage/${imagePath}`} 
+                                        src={imagePath} 
                                         alt={`Gallery Image ${i + 1}`} 
                                         className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" 
                                     />

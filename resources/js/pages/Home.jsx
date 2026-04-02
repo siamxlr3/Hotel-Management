@@ -584,59 +584,95 @@ const Home = () => {
               ))}
             </div>
           ) : offerData && offerData.length > 0 ? (
-            <div className="overflow-hidden">
-              <Slider
-                ref={sliderRef}
-                dots={false}
-                infinite={offerData.length > 3}
-                slidesToShow={3}
-                slidesToScroll={1}
-                arrows={false}
-                responsive={[
-                  { breakpoint: 1280, settings: { slidesToShow: 3 } },
-                  { breakpoint: 1024, settings: { slidesToShow: 2, slidesToScroll: 1 } },
-                  { breakpoint: 768,  settings: { slidesToShow: 1, slidesToScroll: 1, centerMode: false } },
-                  { breakpoint: 640,  settings: { slidesToShow: 1, slidesToScroll: 1, centerMode: false } },
-                ]}
+            <>
+              {/* ── MOBILE: Native CSS scroll-snap (guaranteed 1 card at a time) ── */}
+              <div
+                className="md:hidden flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
               >
                 {offerData.map((offer, i) => {
                   const fmtDate = (d) => d ? new Date(d + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
                   return (
-                    <div key={i} className="px-2 sm:px-3 pb-4 outline-none">
-                      <motion.div
-                        initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }} transition={{ delay: i * 0.1 }}
-                        className="bg-white rounded-3xl overflow-hidden border border-gray-100 group hover:shadow-2xl transition-all duration-500 flex flex-col cursor-pointer"
-                      >
-                        {/* Image */}
-                        <div className="relative overflow-hidden flex-shrink-0" style={{ height: '220px' }}>
+                    <div key={i} className="flex-shrink-0 w-[82vw] snap-center">
+                      <div className="bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm flex flex-col h-full">
+                        <div className="relative overflow-hidden flex-shrink-0" style={{ height: '200px' }}>
                           <img
                             src={offer.image_url}
                             alt={offer.title}
-                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                            className="w-full h-full object-cover"
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                          <div className="absolute top-3 left-3 sm:top-4 sm:left-4 bg-[#B59441] text-white text-[11px] sm:text-xs font-bold px-3 sm:px-4 py-1 sm:py-1.5 rounded-full uppercase tracking-wider shadow-lg">
+                          <div className="absolute top-3 left-3 bg-[#B59441] text-white text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-lg">
                             {parseFloat(offer.discount)}% OFF
                           </div>
                         </div>
-                        {/* Content */}
-                        <div className="p-4 sm:p-6 flex flex-col gap-2">
-                          <h3 className="text-base sm:text-xl font-bold text-[#202921] leading-snug">{offer.title}</h3>
+                        <div className="p-4 flex flex-col gap-2 flex-1">
+                          <h3 className="text-base font-bold text-[#202921] leading-snug">{offer.title}</h3>
                           {(offer.start_date || offer.end_date) && (
-                            <div className="flex items-center gap-1.5 text-xs sm:text-sm text-[#B59441] font-semibold bg-amber-50 w-fit px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full">
-                              <RiCalendarEventLine size={13} />
-                              <span className="whitespace-nowrap">{fmtDate(offer.start_date)} – {fmtDate(offer.end_date)}</span>
+                            <div className="flex items-center gap-1.5 text-xs text-[#B59441] font-semibold bg-amber-50 w-fit px-2.5 py-1 rounded-full">
+                              <RiCalendarEventLine size={12} />
+                              <span>{fmtDate(offer.start_date)} – {fmtDate(offer.end_date)}</span>
                             </div>
                           )}
-                          <p className="text-sm sm:text-base text-gray-500 leading-relaxed line-clamp-3">{offer.description}</p>
+                          <p className="text-sm text-gray-500 leading-relaxed line-clamp-3">{offer.description}</p>
                         </div>
-                      </motion.div>
+                      </div>
                     </div>
                   );
                 })}
-              </Slider>
-            </div>
+              </div>
+
+              {/* ── DESKTOP: react-slick slider (md and above) ── */}
+              <div className="hidden md:block overflow-hidden">
+                <Slider
+                  ref={sliderRef}
+                  dots={false}
+                  infinite={offerData.length > 3}
+                  slidesToShow={3}
+                  slidesToScroll={1}
+                  arrows={false}
+                  responsive={[
+                    { breakpoint: 1280, settings: { slidesToShow: 3 } },
+                    { breakpoint: 1024, settings: { slidesToShow: 2, slidesToScroll: 1 } },
+                  ]}
+                >
+                  {offerData.map((offer, i) => {
+                    const fmtDate = (d) => d ? new Date(d + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+                    return (
+                      <div key={i} className="px-3 pb-4 outline-none">
+                        <motion.div
+                          initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}
+                          viewport={{ once: true }} transition={{ delay: i * 0.1 }}
+                          className="bg-white rounded-3xl overflow-hidden border border-gray-100 group hover:shadow-2xl transition-all duration-500 flex flex-col cursor-pointer"
+                        >
+                          <div className="relative overflow-hidden flex-shrink-0" style={{ height: '240px' }}>
+                            <img
+                              src={offer.image_url}
+                              alt={offer.title}
+                              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                            <div className="absolute top-4 left-4 bg-[#B59441] text-white text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-wider shadow-lg">
+                              {parseFloat(offer.discount)}% OFF
+                            </div>
+                          </div>
+                          <div className="p-6 flex flex-col gap-2 flex-1">
+                            <h3 className="text-xl font-bold text-[#202921] leading-snug">{offer.title}</h3>
+                            {(offer.start_date || offer.end_date) && (
+                              <div className="flex items-center gap-2 text-sm text-[#B59441] font-semibold bg-amber-50 w-fit px-3 py-1.5 rounded-full">
+                                <RiCalendarEventLine size={14} />
+                                <span>{fmtDate(offer.start_date)} – {fmtDate(offer.end_date)}</span>
+                              </div>
+                            )}
+                            <p className="text-base text-gray-500 leading-relaxed line-clamp-3">{offer.description}</p>
+                          </div>
+                        </motion.div>
+                      </div>
+                    );
+                  })}
+                </Slider>
+              </div>
+            </>
           ) : (
             <div className="text-center text-gray-400 text-base italic py-10">No offers available at the moment.</div>
           )}

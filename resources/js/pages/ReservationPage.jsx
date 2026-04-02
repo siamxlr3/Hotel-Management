@@ -353,25 +353,27 @@ export default function ReservationPage() {
   };
 
   const handleCancelReservation = () => {
-    if (!activeReservation) return;
-    
+    // Use activeResFromQuery as fallback in case the state hasn't synced yet (async race)
+    const reservation = activeReservation || activeResFromQuery;
+    if (!reservation) return;
+
     toast((t) => (
       <div className="flex flex-col gap-3 min-w-[250px]">
         <p className="text-sm font-bold text-gray-800">
           {translate('Are you sure you want to cancel this reservation?', language)}
         </p>
         <div className="flex gap-2 justify-end mt-1">
-          <button 
+          <button
             onClick={() => toast.dismiss(t.id)}
             className="px-4 py-2 text-xs font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors border border-gray-200"
           >
             {translate('No, Keep', language)}
           </button>
-          <button 
+          <button
             onClick={async () => {
               toast.dismiss(t.id);
               try {
-                await cancelReservationFn(activeReservation.id).unwrap();
+                await cancelReservationFn(reservation.id).unwrap();
                 toast.success(translate('Reservation cancelled successfully.', language));
                 refetchRooms();
                 refetchCheckouts();
@@ -669,13 +671,27 @@ export default function ReservationPage() {
                     </div>
                     <div className="text-center">
                       <h4 className="text-lg font-bold text-gray-900 mb-1">Guest Arrived?</h4>
-                      <p className="text-sm text-gray-500">Reservation for <strong>{activeReservation?.guest_name}</strong>. Check them in to turn this room to Occupied.</p>
+                      <p className="text-sm text-gray-500">Reservation for <strong>{activeReservation?.guest_name || activeResFromQuery?.guest_name}</strong>. Check them in to turn this room to Occupied.</p>
                     </div>
-                    <button onClick={checkInReserved} disabled={actionLoading} className="w-full py-3 rounded-xl font-bold bg-[#2D3A2E] text-white hover:bg-[#1f2820] shadow-md transition-colors flex justify-center">
-                       {actionLoading ? <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"/> : 'Check-In Guest'}
+                    {/* Check-In button — only shows spinner for updatingReservation */}
+                    <button
+                      onClick={checkInReserved}
+                      disabled={updatingReservation || cancellingReservation}
+                      className="w-full py-3 rounded-xl font-bold bg-[#2D3A2E] text-white hover:bg-[#1f2820] shadow-md transition-colors flex justify-center items-center gap-2"
+                    >
+                      {updatingReservation
+                        ? <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        : 'Check-In Guest'}
                     </button>
-                    <button onClick={handleCancelReservation} disabled={actionLoading} className="w-full py-3 rounded-xl font-bold bg-white text-red-500 border border-red-200 hover:bg-red-50 transition-colors flex justify-center mt-[-10px]">
-                      {translate('Cancel Booking', language)}
+                    {/* Cancel button — only shows spinner for cancellingReservation */}
+                    <button
+                      onClick={handleCancelReservation}
+                      disabled={cancellingReservation || updatingReservation}
+                      className="w-full py-3 rounded-xl font-bold bg-white text-red-500 border border-red-200 hover:bg-red-50 transition-colors flex justify-center items-center gap-2 mt-[-10px]"
+                    >
+                      {cancellingReservation
+                        ? <span className="w-5 h-5 border-2 border-red-300/40 border-t-red-500 rounded-full animate-spin" />
+                        : translate('Cancel Booking', language)}
                     </button>
                   </div>
                 )}

@@ -63,32 +63,78 @@ function SkeletonRow() {
   </>;
 }
 
-function Pagination({ meta, onPage }) {
+function Pagination({ meta, onPage, perPage, onPerPage }) {
   const t = useTranslate();
-  if (!meta || meta.last_page <= 1) return null;
+  if (!meta) return null;
+
+  const from = meta.total === 0 ? 0 : ((meta.current_page - 1) * meta.per_page) + 1;
+  const to   = Math.min(meta.current_page * meta.per_page, meta.total);
+
   return (
-    <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100">
-      <p className="text-xs text-gray-400">
-        {t('Showing')} {((meta.current_page - 1) * meta.per_page) + 1}–
-        {Math.min(meta.current_page * meta.per_page, meta.total)} {t('of')} {meta.total}
-      </p>
-      <div className="flex items-center gap-1">
-        <button onClick={() => onPage(meta.current_page - 1)} disabled={meta.current_page === 1}
-          className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30 transition-colors">
-          <MdChevronLeft size={18} className="text-gray-500" />
-        </button>
-        {[...Array(Math.min(meta.last_page, 5))].map((_, i) => (
-          <button key={i} onClick={() => onPage(i + 1)}
-            className={`w-8 h-8 rounded-lg text-xs font-semibold transition-colors ${meta.current_page === i + 1
-                ? 'bg-[#2D3A2E] text-white'
-                : 'text-gray-500 hover:bg-gray-100'
-              }`}>{i + 1}</button>
-        ))}
-        <button onClick={() => onPage(meta.current_page + 1)} disabled={meta.current_page === meta.last_page}
-          className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30 transition-colors">
-          <MdChevronRight size={18} className="text-gray-500" />
-        </button>
+    <div className="flex flex-wrap items-center justify-between gap-4 px-5 py-3.5 border-t border-gray-100 bg-gray-50/40">
+      {/* Left: record count + per-page selector */}
+      <div className="flex items-center gap-4 flex-wrap">
+        <p className="text-xs text-gray-400 font-medium">
+          {meta.total === 0
+            ? t('No records found')
+            : `${t('Showing')} ${from}–${to} ${t('of')} ${meta.total} ${t('records')}`}
+        </p>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400">{t('Rows per page')}:</span>
+          <select
+            value={perPage}
+            onChange={e => { onPerPage(Number(e.target.value)); }}
+            className="text-xs font-semibold text-gray-700 bg-white border border-gray-200 rounded-xl px-3 py-1.5 outline-none focus:border-[#A8D5A2] focus:ring-2 focus:ring-[#A8D5A2]/20 transition-all cursor-pointer"
+          >
+            {[10, 15, 25, 50, 100].map(n => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </select>
+        </div>
       </div>
+
+      {/* Right: page navigation (only when >1 page) */}
+      {meta.last_page > 1 && (
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => onPage(meta.current_page - 1)}
+            disabled={meta.current_page === 1}
+            className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30 transition-colors"
+          >
+            <MdChevronLeft size={18} className="text-gray-500" />
+          </button>
+
+          {[...Array(meta.last_page)].map((_, idx) => {
+            const p = idx + 1;
+            const cur = meta.current_page;
+            const show = p === 1 || p === meta.last_page || (p >= cur - 1 && p <= cur + 1);
+            if (!show) {
+              if (p === cur - 2 || p === cur + 2)
+                return <span key={p} className="text-gray-300 text-xs px-1">…</span>;
+              return null;
+            }
+            return (
+              <button
+                key={p}
+                onClick={() => onPage(p)}
+                className={`w-8 h-8 rounded-lg text-xs font-semibold transition-colors ${
+                  cur === p
+                    ? 'bg-[#2D3A2E] text-white shadow-sm'
+                    : 'text-gray-500 hover:bg-gray-100 border border-gray-200'
+                }`}
+              >{p}</button>
+            );
+          })}
+
+          <button
+            onClick={() => onPage(meta.current_page + 1)}
+            disabled={meta.current_page === meta.last_page}
+            className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30 transition-colors"
+          >
+            <MdChevronRight size={18} className="text-gray-500" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -403,6 +449,7 @@ export default function ExpensePage() {
   const [editItem, setEditItem] = useState(null);
   const [deleteItem, setDeleteItem] = useState(null);
   const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(15);
   const [searchQ, setSearchQ] = useState('');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -410,8 +457,11 @@ export default function ExpensePage() {
   const [dateRange, setDateRange] = useState({ from: '', to: '' });
   const [printingId, setPrintingId] = useState(null);
 
+  // Reset to page 1 when per-page changes
+  useEffect(() => setPage(1), [perPage]);
+
   const { data: expensesData, isFetching: expensesLoading, refetch: refetchExpenses } = useGetExpensesQuery({
-    page, per_page: 15, search, status: statusFilter,
+    page, per_page: perPage, search, status: statusFilter,
     date_from: dateRange.from, date_to: dateRange.to
   });
 
@@ -820,7 +870,7 @@ export default function ExpensePage() {
             </tbody>
           </table>
         </div>
-        <Pagination meta={meta} onPage={setPage}/>
+        <Pagination meta={meta} onPage={setPage} perPage={perPage} onPerPage={setPerPage} />
       </div>
 
       {/* Delete Confirmation */}

@@ -61,15 +61,13 @@ class ExpenseService
             $q->where('date', '<=', $f['date_to']);
         }
 
-        $all = $q->get();
-
         return [
-            'total_expenses'  => (float) $all->sum('grand_total'),
-            'paid_total'      => (float) $all->where('status', 'Paid')->sum('grand_total'),
-            'unpaid_total'    => (float) $all->where('status', 'Unpaid')->sum('grand_total'),
-            'total_count'     => $all->count(),
-            'paid_count'      => $all->where('status', 'Paid')->count(),
-            'unpaid_count'    => $all->where('status', 'Unpaid')->count(),
+            'total_expenses'  => (float) (clone $q)->sum('grand_total'),
+            'paid_total'      => (float) (clone $q)->where('status', 'Paid')->sum('grand_total'),
+            'unpaid_total'    => (float) (clone $q)->where('status', 'Unpaid')->sum('grand_total'),
+            'total_count'     => (clone $q)->count(),
+            'paid_count'      => (clone $q)->where('status', 'Paid')->count(),
+            'unpaid_count'    => (clone $q)->where('status', 'Unpaid')->count(),
         ];
     }
 }

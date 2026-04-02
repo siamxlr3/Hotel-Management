@@ -91,31 +91,76 @@ const SkeletonRow = ({ cols = 5 }) => (
   </>
 );
 
-const Pagination = ({ meta, onPage }) => {
+const Pagination = ({ meta, onPage, perPage, onPerPage }) => {
   const t = useTranslate();
-  if (!meta || meta.last_page <= 1) return null;
+  if (!meta) return null;
+
+  const from = meta.total === 0 ? 0 : ((meta.current_page - 1) * meta.per_page) + 1;
+  const to   = Math.min(meta.current_page * meta.per_page, meta.total);
+
   return (
-    <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100">
-      <p className="text-xs text-gray-400">
-        {t('Showing')} {((meta.current_page - 1) * meta.per_page) + 1}–
-        {Math.min(meta.current_page * meta.per_page, meta.total)} {t('of')} {meta.total}
-      </p>
-      <div className="flex items-center gap-1">
-        <button onClick={() => onPage(meta.current_page - 1)} disabled={meta.current_page === 1}
-          className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30 transition-colors">
-          <MdChevronLeft size={18} className="text-gray-500" />
-        </button>
-        {[...Array(Math.min(meta.last_page, 5))].map((_, i) => (
-          <button key={i} onClick={() => onPage(i + 1)}
-            className={`w-8 h-8 rounded-lg text-xs font-semibold transition-colors ${
-              meta.current_page === i + 1 ? 'bg-[#2D3A2E] text-white' : 'text-gray-500 hover:bg-gray-100'
-            }`}>{i + 1}</button>
-        ))}
-        <button onClick={() => onPage(meta.current_page + 1)} disabled={meta.current_page === meta.last_page}
-          className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30 transition-colors">
-          <MdChevronRight size={18} className="text-gray-500" />
-        </button>
+    <div className="flex flex-wrap items-center justify-between gap-4 px-5 py-3.5 border-t border-gray-100 bg-gray-50/40">
+      <div className="flex items-center gap-4 flex-wrap">
+        <p className="text-xs text-gray-400 font-medium">
+          {meta.total === 0
+            ? t('No records found')
+            : `${t('Showing')} ${from}–${to} ${t('of')} ${meta.total} ${t('records')}`}
+        </p>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400">{t('Rows per page')}:</span>
+          <select
+            value={perPage}
+            onChange={e => { onPerPage(Number(e.target.value)); }}
+            className="text-xs font-semibold text-gray-700 bg-white border border-gray-200 rounded-xl px-3 py-1.5 outline-none focus:border-[#A8D5A2] focus:ring-2 focus:ring-[#A8D5A2]/20 transition-all cursor-pointer"
+          >
+            {[10, 15, 25, 50, 100].map(n => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </select>
+        </div>
       </div>
+
+      {meta.last_page > 1 && (
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => onPage(meta.current_page - 1)}
+            disabled={meta.current_page === 1}
+            className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30 transition-colors"
+          >
+            <MdChevronLeft size={18} className="text-gray-500" />
+          </button>
+
+          {[...Array(meta.last_page)].map((_, idx) => {
+            const p = idx + 1;
+            const cur = meta.current_page;
+            const show = p === 1 || p === meta.last_page || (p >= cur - 1 && p <= cur + 1);
+            if (!show) {
+              if (p === cur - 2 || p === cur + 2)
+                return <span key={p} className="text-gray-300 text-xs px-1">…</span>;
+              return null;
+            }
+            return (
+              <button
+                key={p}
+                onClick={() => onPage(p)}
+                className={`w-8 h-8 rounded-lg text-xs font-semibold transition-colors ${
+                  cur === p
+                    ? 'bg-[#2D3A2E] text-white shadow-sm'
+                    : 'text-gray-500 hover:bg-gray-100 border border-gray-200'
+                }`}
+              >{p}</button>
+            );
+          })}
+
+          <button
+            onClick={() => onPage(meta.current_page + 1)}
+            disabled={meta.current_page === meta.last_page}
+            className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30 transition-colors"
+          >
+            <MdChevronRight size={18} className="text-gray-500" />
+          </button>
+        </div>
+      )}
     </div>
   );
 };
@@ -152,6 +197,7 @@ const StaffPage = () => {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(15);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [deleteItem, setDeleteItem] = useState(null);
@@ -169,17 +215,17 @@ const StaffPage = () => {
     return () => clearTimeout(handler);
   }, [search]);
 
-  // Reset page when activeTab changes
-  useEffect(() => setPage(1), [activeTab]);
+  // Reset page when activeTab or perPage changes
+  useEffect(() => setPage(1), [activeTab, perPage]);
 
   // Queries
-  const { data: staffData, isFetching: staffLoading } = useGetStaffQuery({ search: debouncedSearch, page, ...filters }, { skip: activeTab !== 'staff' });
-  const { data: shiftData, isFetching: shiftLoading } = useGetShiftsQuery({ search: debouncedSearch, page }, { skip: activeTab !== 'shifts' });
-  const { data: roleData, isFetching: roleLoading } = useGetRolesQuery({ search: debouncedSearch, page }, { skip: activeTab !== 'roles' });
-  const { data: attendanceData, isFetching: attendanceLoading } = useGetAttendancesQuery({ search: debouncedSearch, page, ...filters }, { skip: activeTab !== 'attendance' });
-  const { data: leaveTypeData, isFetching: leaveTypeLoading } = useGetLeaveTypesQuery({ search: debouncedSearch, page }, { skip: activeTab !== 'leave-types' });
-  const { data: leaveData, isFetching: leaveLoading } = useGetLeavesQuery({ search: debouncedSearch, page, ...filters }, { skip: activeTab !== 'leaves' });
-  const { data: payrollData, isFetching: payrollLoading } = useGetPayrollsQuery({ search: debouncedSearch, page, ...filters }, { skip: activeTab !== 'payroll' });
+  const { data: staffData, isFetching: staffLoading } = useGetStaffQuery({ search: debouncedSearch, page, per_page: perPage, ...filters }, { skip: activeTab !== 'staff' });
+  const { data: shiftData, isFetching: shiftLoading } = useGetShiftsQuery({ search: debouncedSearch, page, per_page: perPage }, { skip: activeTab !== 'shifts' });
+  const { data: roleData, isFetching: roleLoading } = useGetRolesQuery({ search: debouncedSearch, page, per_page: perPage }, { skip: activeTab !== 'roles' });
+  const { data: attendanceData, isFetching: attendanceLoading } = useGetAttendancesQuery({ search: debouncedSearch, page, per_page: perPage, ...filters }, { skip: activeTab !== 'attendance' });
+  const { data: leaveTypeData, isFetching: leaveTypeLoading } = useGetLeaveTypesQuery({ search: debouncedSearch, page, per_page: perPage }, { skip: activeTab !== 'leave-types' });
+  const { data: leaveData, isFetching: leaveLoading } = useGetLeavesQuery({ search: debouncedSearch, page, per_page: perPage, ...filters }, { skip: activeTab !== 'leaves' });
+  const { data: payrollData, isFetching: payrollLoading } = useGetPayrollsQuery({ search: debouncedSearch, page, per_page: perPage, ...filters }, { skip: activeTab !== 'payroll' });
   const { data: payrollSummary } = useGetPayrollSummaryQuery({ search: debouncedSearch, ...filters }, { skip: activeTab !== 'payroll' });
   
   // CMS Queries for Branding
@@ -577,7 +623,7 @@ const StaffPage = () => {
           </table>
         </div>
 
-        <Pagination meta={currentData?.meta} onPage={setPage} />
+        <Pagination meta={currentData?.meta} onPage={setPage} perPage={perPage} onPerPage={setPerPage} />
       </div>
 
       {/* ── Modals ── */}

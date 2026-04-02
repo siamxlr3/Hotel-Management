@@ -74,6 +74,7 @@ const Home = () => {
   const [subscribed,     setSubscribed]     = useState(false);
   const roomsPerPage = 9;
   const sliderRef = useRef(null);
+  const mobileScrollRef = useRef(null);
 
   useEffect(() => {
     const onScroll = () => setIsScrolled(window.scrollY > 60);
@@ -559,11 +560,27 @@ const Home = () => {
               <h2 className="text-4xl md:text-5xl font-bold text-[#202921]">Exclusive Offers</h2>
             </div>
             <div className="flex gap-3">
-              <button onClick={() => sliderRef.current?.slickPrev()}
+              <button
+                onClick={() => {
+                  if (mobileScrollRef.current && window.innerWidth < 768) {
+                    const cardWidth = mobileScrollRef.current.firstChild?.offsetWidth + 16 || mobileScrollRef.current.offsetWidth * 0.86;
+                    mobileScrollRef.current.scrollBy({ left: -cardWidth, behavior: 'smooth' });
+                  } else {
+                    sliderRef.current?.slickPrev();
+                  }
+                }}
                 className="w-12 h-12 rounded-full border-2 border-gray-200 flex items-center justify-center hover:bg-[#202921] hover:border-[#202921] hover:text-white transition-all text-gray-400">
                 <RiArrowLeftSLine size={22} />
               </button>
-              <button onClick={() => sliderRef.current?.slickNext()}
+              <button
+                onClick={() => {
+                  if (mobileScrollRef.current && window.innerWidth < 768) {
+                    const cardWidth = mobileScrollRef.current.firstChild?.offsetWidth + 16 || mobileScrollRef.current.offsetWidth * 0.86;
+                    mobileScrollRef.current.scrollBy({ left: cardWidth, behavior: 'smooth' });
+                  } else {
+                    sliderRef.current?.slickNext();
+                  }
+                }}
                 className="w-12 h-12 rounded-full border-2 border-gray-200 flex items-center justify-center hover:bg-[#202921] hover:border-[#202921] hover:text-white transition-all text-gray-400">
                 <RiArrowRightSLine size={22} />
               </button>
@@ -587,6 +604,7 @@ const Home = () => {
             <>
               {/* ── MOBILE: Native CSS scroll-snap (guaranteed 1 card at a time) ── */}
               <div
+                ref={mobileScrollRef}
                 className="md:hidden flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory"
                 style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
               >

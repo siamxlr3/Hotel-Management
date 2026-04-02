@@ -453,7 +453,6 @@ export default function ExpensePage() {
   const [searchQ, setSearchQ] = useState('');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [datePreset, setDatePreset] = useState('');
   const [dateRange, setDateRange] = useState({ from: '', to: '' });
   const [printingId, setPrintingId] = useState(null);
 
@@ -548,27 +547,6 @@ export default function ExpensePage() {
       setPrintingId(null);
     }
   }, [hotelInfo, t]);
-
-  const handleDatePreset = (preset) => {
-    setDatePreset(preset);
-    const today = new Date();
-    const fmt = (d) => d.toISOString().split('T')[0];
-
-    if (preset === 'today') {
-      setDateRange({ from: fmt(today), to: fmt(today) });
-    } else if (preset === 'this_week') {
-      const day = today.getDay();
-      const diff = today.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
-      const start = new Date(today.setDate(diff));
-      setDateRange({ from: fmt(start), to: fmt(new Date()) });
-    } else if (preset === 'this_month') {
-      const start = new Date(today.getFullYear(), today.getMonth(), 1);
-      setDateRange({ from: fmt(start), to: fmt(new Date()) });
-    } else if (preset === 'all') {
-      setDateRange({ from: '', to: '' });
-    }
-    setPage(1);
-  };
 
   /* ── Render ── */
   return (
@@ -678,36 +656,31 @@ export default function ExpensePage() {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Date filter */}
+            {/* Date filter (Custom Range) */}
             <div className="flex items-center gap-2">
-              <select
-                value={datePreset}
-                onChange={e => handleDatePreset(e.target.value)}
-                className="text-sm bg-gray-50 border border-gray-200 rounded-xl px-3 py-2
-                           outline-none text-gray-600 focus:border-[#A8D5A2] transition-all">
-                <option value="all">{t('All Dates')}</option>
-                <option value="today">{t('Today')}</option>
-                <option value="this_week">{t('This Week')}</option>
-                <option value="this_month">{t('This Month')}</option>
-                <option value="custom">{t('Custom Range')}</option>
-              </select>
-
-              {datePreset === 'custom' && (
-                <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2">
-                  <input
-                    type="date"
-                    value={dateRange.from}
-                    onChange={e => { setDateRange(prev => ({ ...prev, from: e.target.value })); setPage(1); }}
-                    className="text-sm bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 outline-none"
-                  />
-                  <span className="text-gray-400">—</span>
-                  <input
-                    type="date"
-                    value={dateRange.to}
-                    onChange={e => { setDateRange(prev => ({ ...prev, to: e.target.value })); setPage(1); }}
-                    className="text-sm bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 outline-none"
-                  />
-                </div>
+              <input
+                type="date"
+                value={dateRange.from}
+                onChange={e => { setDateRange(prev => ({ ...prev, from: e.target.value })); setPage(1); }}
+                className="text-sm bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-[#A8D5A2] transition-colors"
+                title={t('Date From')}
+              />
+              <span className="text-gray-400">—</span>
+              <input
+                type="date"
+                value={dateRange.to}
+                onChange={e => { setDateRange(prev => ({ ...prev, to: e.target.value })); setPage(1); }}
+                className="text-sm bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-[#A8D5A2] transition-colors"
+                title={t('Date To')}
+              />
+              {(dateRange.from || dateRange.to) && (
+                <button
+                  onClick={() => { setDateRange({ from: '', to: '' }); setPage(1); }}
+                  className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                  title={t('Clear Dates')}
+                >
+                  <MdClose size={16} />
+                </button>
               )}
             </div>
 

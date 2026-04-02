@@ -340,9 +340,11 @@ export default function ReservationPage() {
 
 
   const checkInReserved = async () => {
-    if (!activeReservation) return;
+    // Use activeResFromQuery as fallback in case activeReservation state hasn't synced yet
+    const reservation = activeReservation || activeResFromQuery;
+    if (!reservation) return;
     try {
-      await updateReservationFn({ id: activeReservation.id, checked_in_at: new Date().toISOString() }).unwrap();
+      await updateReservationFn({ id: reservation.id, checked_in_at: new Date().toISOString() }).unwrap();
       toast.success('Guest Checked-In.');
       refetchRooms();
       refetchCheckouts();
@@ -664,37 +666,66 @@ export default function ReservationPage() {
                 )}
 
                 {/* 3. RESERVED ACTION (CHECK-IN) */}
-                {modalType === 'reservedAction' && (
-                  <div className="flex flex-col gap-6 items-center py-4">
-                    <div className="w-16 h-16 rounded-full bg-orange-100 flex items-center justify-center text-orange-500">
-                      <BsPersonVcardFill size={32} />
+                {modalType === 'reservedAction' && (() => {
+                  // The reservation data we can act on — prefer synced state, fall back to raw query
+                  const resolvedReservation = activeReservation || activeResFromQuery;
+                  const guestName = resolvedReservation?.guest_name;
+                  const isDataReady = !!resolvedReservation;
+                  const isBusy = fetchingActiveRes || updatingReservation || cancellingReservation;
+
+                  return (
+                    <div className="flex flex-col gap-6 items-center py-4">
+                      <div className="w-16 h-16 rounded-full bg-orange-100 flex items-center justify-center text-orange-500">
+                        <BsPersonVcardFill size={32} />
+                      </div>
+
+                      <div className="text-center">
+                        <h4 className="text-lg font-bold text-gray-900 mb-2">Guest Arrived?</h4>
+                        {fetchingActiveRes ? (
+                          /* Loading skeleton while query is in-flight */
+                          <div className="flex flex-col items-center gap-2">
+                            <div className="h-4 w-48 bg-gray-200 rounded animate-pulse" />
+                            <div className="h-4 w-56 bg-gray-100 rounded animate-pulse" />
+                          </div>
+                        ) : (
+                          <p className="text-sm text-gray-500">
+                            Reservation for{' '}
+                            <strong className="text-gray-800">{guestName || '—'}</strong>.
+                            {' '}Check them in to turn this room to Occupied.
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Check-In button — spinner only when updatingReservation */}
+                      <button
+                        onClick={checkInReserved}
+                        disabled={isBusy || !isDataReady}
+                        className="w-full py-3 rounded-xl font-bold bg-[#2D3A2E] text-white hover:bg-[#1f2820] shadow-md transition-all flex justify-center items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                      >
+                        {fetchingActiveRes ? (
+                          <><span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Loading...</>
+                        ) : updatingReservation ? (
+                          <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        ) : (
+                          'Check-In Guest'
+                        )}
+                      </button>
+
+                      {/* Cancel button — spinner only when cancellingReservation */}
+                      <button
+                        onClick={handleCancelReservation}
+                        disabled={isBusy || !isDataReady}
+                        className="w-full py-3 rounded-xl font-bold bg-white text-red-500 border border-red-200 hover:bg-red-50 transition-all flex justify-center items-center gap-2 mt-[-10px] disabled:opacity-60 disabled:cursor-not-allowed"
+                      >
+                        {cancellingReservation ? (
+                          <span className="w-5 h-5 border-2 border-red-300/40 border-t-red-500 rounded-full animate-spin" />
+                        ) : (
+                          translate('Cancel Booking', language)
+                        )}
+                      </button>
                     </div>
-                    <div className="text-center">
-                      <h4 className="text-lg font-bold text-gray-900 mb-1">Guest Arrived?</h4>
-                      <p className="text-sm text-gray-500">Reservation for <strong>{activeReservation?.guest_name || activeResFromQuery?.guest_name}</strong>. Check them in to turn this room to Occupied.</p>
-                    </div>
-                    {/* Check-In button — only shows spinner for updatingReservation */}
-                    <button
-                      onClick={checkInReserved}
-                      disabled={updatingReservation || cancellingReservation}
-                      className="w-full py-3 rounded-xl font-bold bg-[#2D3A2E] text-white hover:bg-[#1f2820] shadow-md transition-colors flex justify-center items-center gap-2"
-                    >
-                      {updatingReservation
-                        ? <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        : 'Check-In Guest'}
-                    </button>
-                    {/* Cancel button — only shows spinner for cancellingReservation */}
-                    <button
-                      onClick={handleCancelReservation}
-                      disabled={cancellingReservation || updatingReservation}
-                      className="w-full py-3 rounded-xl font-bold bg-white text-red-500 border border-red-200 hover:bg-red-50 transition-colors flex justify-center items-center gap-2 mt-[-10px]"
-                    >
-                      {cancellingReservation
-                        ? <span className="w-5 h-5 border-2 border-red-300/40 border-t-red-500 rounded-full animate-spin" />
-                        : translate('Cancel Booking', language)}
-                    </button>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {/* 4. PAYMENT / CHECKOUT FORM */}
                 {modalType === 'paymentForm' && (

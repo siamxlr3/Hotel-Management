@@ -125,7 +125,7 @@ const Home = () => {
   const galleryUrls = galleryData?.[0]?.gallery_urls || [];
 
   return (
-    <div className="bg-white min-h-screen selection:bg-[#2D3A2E] selection:text-white"
+    <div className="bg-white min-h-screen overflow-x-hidden selection:bg-[#2D3A2E] selection:text-white"
          style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif", fontSize: '16px', lineHeight: '1.7' }}>
 
       {/* ── Mobile Sidebar Overlay ────────────────────────────────────────── */}

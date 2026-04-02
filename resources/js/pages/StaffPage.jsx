@@ -439,7 +439,7 @@ const StaffPage = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/60">
-                {activeTab === 'staff' && [t('Staff Name'), t('Role/Shift'), t('NID Number'), t('Address'), t('Salary'), t('Joined'), t('Status'), t('Actions')].map(h => <th key={h} className="text-left px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{h}</th>)}
+                {activeTab === 'staff' && [t('Staff Name'), t('Role/Shift'), t('NID Number/Phone'), t('Address'), t('Salary'), t('Staff Code/Joined'), t('Status'), t('Actions')].map(h => <th key={h} className="text-left px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{h}</th>)}
                 {activeTab === 'attendance' && [t('Staff'), t('Date'), t('Time Details'), t('Status'), t('Actions')].map(h => <th key={h} className="text-left px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{h}</th>)}
                 {activeTab === 'leaves' && [t('Staff'), t('Leave Type'), t('Period'), t('Reason'), t('Status'), t('Actions')].map(h => <th key={h} className="text-left px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{h}</th>)}
                 {activeTab === 'payroll' && [t('Staff'), t('Date'), t('Period'), t('Amount Details'), t('Status'), t('Actions')].map(h => <th key={h} className="text-left px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{h}</th>)}

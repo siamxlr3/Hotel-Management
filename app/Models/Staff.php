@@ -19,7 +19,7 @@ class Staff extends Model
     protected $appends = ['image_url'];
 
     protected $casts = [
-        'joined_at' => 'date',
+        'joined_at' => 'date:Y-m-d',
         'salary' => 'decimal:2',
         'status' => 'string',
     ];

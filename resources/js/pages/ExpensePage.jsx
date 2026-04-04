@@ -633,7 +633,7 @@ export default function ExpensePage() {
       </AnimatePresence>
 
       {/* ── Table card ── */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col flex-1 min-w-0 min-h-[500px]">
 
         {/* Toolbar */}
         <div className="px-5 py-4 border-b border-gray-100 flex flex-wrap
@@ -707,7 +707,7 @@ export default function ExpensePage() {
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto flex-1">
           <table className="w-full text-sm table-fixed min-w-[1800px]">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/60">

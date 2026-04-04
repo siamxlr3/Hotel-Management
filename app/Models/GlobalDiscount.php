@@ -16,8 +16,8 @@ class GlobalDiscount extends Model
 
     protected $casts = [
         'value'       => 'decimal:2',
-        'valid_from'  => 'date',
-        'valid_until' => 'date',
+        'valid_from'  => 'date:Y-m-d',
+        'valid_until' => 'date:Y-m-d',
         'status'      => 'string',
     ];
 

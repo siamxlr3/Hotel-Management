@@ -22,7 +22,8 @@ import {
 import {
   useGetRoomsQuery,
   useGetAllCategoriesQuery,
-  useUpdateRoomStatusMutation
+  useUpdateRoomStatusMutation,
+  roomApi
 } from '../store/api/roomApi';
 
 import {
@@ -152,6 +153,7 @@ function RoomCard({ room, onClick, globalDiscounts, categoryDiscounts, language,
 
 export default function ReservationPage() {
   const { language, currency } = useSelector(state => state.locale);
+  const dispatch = useDispatch();
   
   // Local States
   const [filterStatus, setFilterStatus] = useState('All');
@@ -305,6 +307,7 @@ export default function ReservationPage() {
 
       await createReservationFn(payload).unwrap();
       toast.success(`${type} successful!`);
+      dispatch(roomApi.util.invalidateTags(['Room']));
       refetchRooms();
       refetchCheckouts();
       closeModal();
@@ -314,11 +317,12 @@ export default function ReservationPage() {
   };
 
   const processPayment = async () => {
-    if (!activeReservation) return toast.error("No active reservation found.");
+    const reservation = activeReservation || activeResFromQuery;
+    if (!reservation) return toast.error(translate("No active user", language));
     
     try {
       const payload = {
-        id: activeReservation.id,
+        id: reservation.id,
         payment_method: form.payment_method,
         status: 'Paid',
         payment_status: 'Completed',
@@ -327,6 +331,7 @@ export default function ReservationPage() {
 
       const res = await updateReservationFn(payload).unwrap();
       toast.success('Payment processed! Invoice generated.');
+      dispatch(roomApi.util.invalidateTags(['Room']));
       refetchRooms();
       refetchCheckouts();
       
@@ -346,6 +351,7 @@ export default function ReservationPage() {
     try {
       await updateReservationFn({ id: reservation.id, checked_in_at: new Date().toISOString() }).unwrap();
       toast.success('Guest Checked-In.');
+      dispatch(roomApi.util.invalidateTags(['Room']));
       refetchRooms();
       refetchCheckouts();
       closeModal();
@@ -377,6 +383,7 @@ export default function ReservationPage() {
               try {
                 await cancelReservationFn(reservation.id).unwrap();
                 toast.success(translate('Reservation cancelled successfully.', language));
+                dispatch(roomApi.util.invalidateTags(['Room']));
                 refetchRooms();
                 refetchCheckouts();
                 closeModal();
@@ -400,6 +407,7 @@ export default function ReservationPage() {
     try {
       await updateRoomStatusFn({ id: selectedRoom.id, status: 'Available' }).unwrap();
       toast.success('Room marked as Available.');
+      dispatch(roomApi.util.invalidateTags(['Room']));
       refetchRooms();
       closeModal();
     } catch (err) {
@@ -728,15 +736,25 @@ export default function ReservationPage() {
                 })()}
 
                 {/* 4. PAYMENT / CHECKOUT FORM */}
-                {modalType === 'paymentForm' && (
+                {modalType === 'paymentForm' && (() => {
+                  const resolvedRes = activeReservation || activeResFromQuery;
+                  const isBusy = actionLoading || fetchingActiveRes;
+                  return (
                   <div className="flex flex-col gap-5">
+                    {fetchingActiveRes && !resolvedRes ? (
+                      <div className="flex flex-col items-center justify-center py-10 gap-3">
+                         <span className="w-8 h-8 border-4 border-gray-200 border-t-[#2D3A2E] rounded-full animate-spin" />
+                         <p className="text-sm font-bold text-gray-400 animate-pulse">{translate('Fetching reservation...', language)}</p>
+                      </div>
+                    ) : (
+                      <>
                     <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 flex flex-col gap-2 relative overflow-hidden">
                        <MdPayment className="absolute right-[-20px] top-[-20px] text-gray-200/50" size={120} />
                        
                        <div className="flex justify-between items-end relative z-10 w-full mb-2 border-b border-gray-200/60 pb-2">
                          <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">{translate('Nights', language)} ({formatPrice(selectedRoom?.base_price || 0, currency)} / {translate('night', language)})</span>
                          <span className="text-sm font-semibold text-gray-800">
-                           {activeReservation?.check_in && activeReservation?.check_out ? Math.max(1, Math.ceil(Math.abs(new Date(activeReservation.check_out) - new Date(activeReservation.check_in)) / (1000 * 60 * 60 * 24))) : 1}
+                           {resolvedRes?.check_in && resolvedRes?.check_out ? Math.max(1, Math.ceil(Math.abs(new Date(resolvedRes.check_out) - new Date(resolvedRes.check_in)) / (1000 * 60 * 60 * 24))) : 1}
                          </span>
                        </div>
 
@@ -748,7 +766,7 @@ export default function ReservationPage() {
                        {(form.global_discount_percent > 0 || form.category_discount_percent > 0) && (
                          <div className="flex justify-between items-end relative z-10 w-full mb-2 text-red-500">
                            <span className="text-[11px] font-bold uppercase tracking-widest">{translate('Discount Applied', language)}</span>
-                           <span className="text-sm font-semibold">-{formatPrice(((Number(selectedRoom?.base_price || 0) * (activeReservation?.check_in && activeReservation?.check_out ? Math.max(1, Math.ceil(Math.abs(new Date(activeReservation.check_out) - new Date(activeReservation.check_in)) / (1000 * 60 * 60 * 24))) : 1)) - Number(form.subtotal)), currency)}</span>
+                           <span className="text-sm font-semibold">-{formatPrice(((Number(selectedRoom?.base_price || 0) * (resolvedRes?.check_in && resolvedRes?.check_out ? Math.max(1, Math.ceil(Math.abs(new Date(resolvedRes.check_out) - new Date(resolvedRes.check_in)) / (1000 * 60 * 60 * 24))) : 1)) - Number(form.subtotal)), currency)}</span>
                          </div>
                        )}
 
@@ -783,11 +801,14 @@ export default function ReservationPage() {
                       </select>
                     </div>
 
-                    <button onClick={processPayment} disabled={actionLoading} className="w-full mt-2 py-3.5 rounded-xl font-bold bg-[#A8D5A2] text-[#2D5A30] hover:bg-[#96c190] shadow-[0_5px_15px_-5px_#A8D5A2] transition-colors flex justify-center items-center gap-2">
-                      {actionLoading ? <span className="w-5 h-5 border-2 border-[#2D5A30]/30 border-t-[#2D5A30] rounded-full animate-spin"/> : <><MdCheckCircle size={20} /> {translate('Process Payment & Checkout', language)}</>}
+                    <button onClick={processPayment} disabled={isBusy} className="w-full mt-2 py-3.5 rounded-xl font-bold bg-[#A8D5A2] text-[#2D5A30] hover:bg-[#96c190] shadow-[0_5px_15px_-5px_#A8D5A2] transition-colors flex justify-center items-center gap-2">
+                      {isBusy ? <span className="w-5 h-5 border-2 border-[#2D5A30]/30 border-t-[#2D5A30] rounded-full animate-spin"/> : <><MdCheckCircle size={20} /> {translate('Process Payment & Checkout', language)}</>}
                     </button>
+                      </>
+                    )}
                   </div>
-                )}
+                  );
+                })()}
 
                 {/* 4.5 DOWNLOAD RECEIPT SCREEN */}
                 {modalType === 'downloadReceipt' && (

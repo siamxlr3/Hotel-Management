@@ -741,7 +741,7 @@ export default function ReservationPage() {
                   const isBusy = actionLoading || fetchingActiveRes;
                   return (
                   <div className="flex flex-col gap-5">
-                    {fetchingActiveRes && !resolvedRes ? (
+                    {fetchingActiveRes ? (
                       <div className="flex flex-col items-center justify-center py-10 gap-3">
                          <span className="w-8 h-8 border-4 border-gray-200 border-t-[#2D3A2E] rounded-full animate-spin" />
                          <p className="text-sm font-bold text-gray-400 animate-pulse">{translate('Fetching reservation...', language)}</p>

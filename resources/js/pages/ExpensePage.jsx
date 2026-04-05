@@ -52,7 +52,7 @@ function SkeletonRow() {
   return <>
     {[...Array(5)].map((_, i) => (
       <tr key={i} className="border-b border-gray-50">
-        {[...Array(13)].map((_, j) => (
+        {[...Array(9)].map((_, j) => (
           <td key={j} className="px-4 py-4">
             <div className="h-4 bg-gray-100 rounded-lg animate-pulse"
               style={{ width: `${50 + Math.random() * 40}%` }} />
@@ -708,21 +708,17 @@ export default function ExpensePage() {
 
         {/* Table */}
         <div className="overflow-x-auto flex-1">
-          <table className="w-full text-sm table-fixed min-w-[1800px]">
+          <table className="w-full text-sm table-fixed min-w-[1400px]">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/60">
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[180px]">{t('Transaction ID')}</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[200px]">{t('Supplier')}</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[180px]">{t('Contact')}</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[150px]">{t('Phone')}</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[250px]">{t('Address')}</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[200px]">{t('Items')}</th>
-                <th className="text-center px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[100px]">{t('Qty')}</th>
-                <th className="text-center px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[120px]">{t('Category')}</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[260px]">{t('Contact')} / {t('Phone')} / {t('Address')}</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[220px]">{t('Items')}</th>
+                <th className="text-center px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[150px]">{t('Qty')} / {t('Category')}</th>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[150px]">{t('Unit Price')}</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[160px]">{t('Total')}</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[150px]">{t('Date')}</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[130px]">{t('Status')}</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[180px]">{t('Total')} / {t('Date')}</th>
+                <th className="text-center px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[110px]">{t('Status')}</th>
                 <th className="text-center px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[120px]">{t('Actions')}</th>
               </tr>
             </thead>
@@ -730,7 +726,7 @@ export default function ExpensePage() {
               {expensesLoading ? <SkeletonRow /> :
                 expenses.length === 0 ? (
                   <tr>
-                    <td colSpan={13} className="px-5 py-16 text-center">
+                    <td colSpan={9} className="px-5 py-16 text-center">
                       <div className="flex flex-col items-center gap-3">
                         <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center
                                        justify-center">
@@ -755,14 +751,10 @@ export default function ExpensePage() {
                     <td className="px-4 py-3.5 font-semibold text-gray-800 whitespace-nowrap">
                       {exp.supplier_name}
                     </td>
-                    <td className="px-4 py-3.5 text-gray-500 text-xs">
-                      {exp.contact_person || '—'}
-                    </td>
-                    <td className="px-4 py-3.5 text-gray-500 text-xs whitespace-nowrap">
-                      {exp.phone || '—'}
-                    </td>
-                    <td className="px-4 py-3.5 text-gray-500 text-xs max-w-[220px]">
-                      <p className="truncate" title={exp.address}>{exp.address || '—'}</p>
+                    <td className="px-4 py-3.5 text-left">
+                      <div className="font-semibold text-gray-700 text-xs">{exp.contact_person || '—'}</div>
+                      <div className="text-[11px] text-gray-500 mt-0.5">{exp.phone || '—'}</div>
+                      <div className="text-[10px] text-gray-400 mt-0.5 truncate max-w-[220px]" title={exp.address}>{exp.address || '—'}</div>
                     </td>
                     <td className="px-4 py-3.5 text-gray-600 max-w-[140px]">
                       {(exp.line_items || []).map((l, idx) => (
@@ -771,18 +763,11 @@ export default function ExpensePage() {
                         </div>
                       ))}
                     </td>
-                    <td className="px-4 py-3.5 text-gray-600 text-center">
-                      {(exp.line_items || []).map((l, idx) => (
-                        <div key={idx} className="text-[10px] leading-tight mb-1 last:mb-0 text-gray-500">
-                          {l.qty}
-                        </div>
-                      ))}
-                    </td>
                     <td className="px-4 py-3.5 text-center">
                       {(exp.line_items || []).map((l, idx) => (
-                        <div key={idx} className="mb-1 last:mb-0">
-                          <span className="px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600
-                                          text-[9px] font-semibold whitespace-nowrap">
+                        <div key={idx} className="flex items-center justify-center gap-1.5 mb-1 last:mb-0">
+                          <span className="text-[11px] font-medium text-gray-600">{l.qty}</span>
+                          <span className="px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 text-[9px] font-semibold whitespace-nowrap">
                             {t(l.category)}
                           </span>
                         </div>
@@ -795,15 +780,15 @@ export default function ExpensePage() {
                         </div>
                       ))}
                     </td>
-                    <td className="px-4 py-3.5 font-bold text-gray-900 text-right whitespace-nowrap">
-                      {formatPrice(exp.grand_total, currency)}
+                    <td className="px-4 py-3.5 text-right whitespace-nowrap">
+                      <div className="font-bold text-[#2D3A2E] text-sm">{formatPrice(exp.grand_total, currency)}</div>
+                      <div className="text-[10px] font-medium text-gray-400 mt-0.5">
+                        {exp.date ? new Date(exp.date).toLocaleDateString(language === 'BAN' ? 'bn-BD' : 'en-US', {
+                          month: 'short', day: 'numeric', year: 'numeric'
+                        }) : '—'}
+                      </div>
                     </td>
-                    <td className="px-4 py-3.5 text-gray-500 text-xs whitespace-nowrap">
-                      {exp.date ? new Date(exp.date).toLocaleDateString(language === 'BAN' ? 'bn-BD' : 'en-US', {
-                        month: 'short', day: 'numeric', year: 'numeric'
-                      }) : '—'}
-                    </td>
-                    <td className="px-4 py-3.5">
+                    <td className="px-4 py-3.5 text-center">
                       <StatusBadge status={exp.status}/>
                     </td>
                     <td className="px-4 py-3.5 text-center">

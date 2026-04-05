@@ -73,7 +73,7 @@ export default function Dashboard() {
       <div className="flex-1 overflow-y-auto p-5 pb-8 flex flex-col gap-5 min-w-0"
            style={{ scrollbarWidth: 'thin', scrollbarColor: '#E0E0E0 transparent' }}>
 
-        {isLoading ? (
+        {isFetching ? (
            <DashboardSkeleton />
         ) : (
            <>

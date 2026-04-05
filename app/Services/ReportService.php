@@ -35,11 +35,13 @@ class ReportService
         $endMonth = $end->month;
         $endYear = $end->year;
         
-        $rawPayrollRecords = Payroll::whereBetween('year', [$startYear, $endYear])
+        $rawPayrollRecords = Payroll::select('paid_at', 'month', 'year', 'net_salary', 'bonus', 'deduction')
+            ->whereBetween('year', [$startYear, $endYear])
             ->whereIn('month', $this->getMonthsBetween($start, $end))
+            ->toBase() // Memory optimization: returns raw scalar objects, completely bypassing heavy Eloquent hydration
             ->get();
 
-        $payrollRecords = collect();
+        $payrollByDate = [];
 
         foreach ($rawPayrollRecords as $p) {
             $amount = (float)$p->net_salary + (float)$p->bonus - (float)$p->deduction;
@@ -49,11 +51,15 @@ class ReportService
             
             // Only include payroll if its assigned date falls within the selected date range
             if ($pDate->isBetween($start, $end)) {
-                $payrollRecords->push([
-                    'amount' => $amount,
-                    'date' => $pDate->format('Y-m-d')
-                ]);
+                $dateStr = $pDate->format('Y-m-d');
+                $payrollByDate[$dateStr] = ($payrollByDate[$dateStr] ?? 0) + $amount;
             }
+        }
+
+        // Remap to expected collection format
+        $payrollRecords = collect();
+        foreach ($payrollByDate as $date => $amount) {
+            $payrollRecords->push(['date' => $date, 'amount' => $amount]);
         }
 
         $totalPayroll = $payrollRecords->sum('amount');

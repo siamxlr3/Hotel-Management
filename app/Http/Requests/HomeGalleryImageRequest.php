@@ -8,7 +8,7 @@ class HomeGalleryImageRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'gallery' => 'required|array',
+            'gallery' => 'nullable|array',
             'gallery.*' => 'image|mimes:jpg,jpeg,png,webp',
             'keep_gallery'      => 'nullable|array',
             'keep_gallery.*'    => 'string',

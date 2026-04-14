@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ReservationRequest;
 use App\Models\Reservation;
-use App\Models\Tax;
 use App\Services\ReservationService;
 use Barryvdh\Snappy\Facades\SnappyPdf as PDF;
 use Illuminate\Http\JsonResponse;
@@ -36,19 +35,7 @@ class ReservationController extends Controller
     public function store(ReservationRequest $request): JsonResponse
     {
         try {
-            $data = $request->validated();
-            
-            // Adjust totals dynamically based on current DB taxes
-            $activeTaxes = Tax::active()->get();
-            $taxPercent = $activeTaxes->sum('rate') ?? 0;
-            
-            if (isset($data['subtotal'])) {
-                $data['tax_percent'] = $taxPercent;
-                $data['tax_amount'] = $data['subtotal'] * ($taxPercent / 100);
-                $data['total_amount'] = $data['subtotal'] + $data['tax_amount'];
-            }
-
-            $reservation = $this->service->create($data);
+            $reservation = $this->service->create($request->validated());
             return response()->json([
                 'success' => true,
                 'data'    => $reservation,
@@ -62,23 +49,7 @@ class ReservationController extends Controller
     public function update(ReservationRequest $request, Reservation $reservation): JsonResponse
     {
         try {
-            $data = $request->validated();
-
-            // Only dynamically recalculate the totals if the reservation has not been fully paid yet
-            // This prevents changing historical prices if someone updates a guest name later
-            if ($reservation->payment_status !== 'Completed' && $reservation->status !== 'Paid') {
-                $subtotal = $data['subtotal'] ?? $reservation->subtotal;
-                $activeTaxes = Tax::active()->get();
-                $taxPercent = $activeTaxes->sum('rate') ?? 0;
-                
-                if ($subtotal !== null) {
-                    $data['tax_percent'] = $taxPercent;
-                    $data['tax_amount'] = $subtotal * ($taxPercent / 100);
-                    $data['total_amount'] = $subtotal + $data['tax_amount'];
-                }
-            }
-
-            $updated = $this->service->update($reservation, $data);
+            $updated = $this->service->update($reservation, $request->validated());
             return response()->json([
                 'success' => true,
                 'data'    => $updated,
@@ -129,7 +100,7 @@ class ReservationController extends Controller
     {
         try {
             $reservation = Reservation::where('room_id', $roomId)
-                ->where('status', 'Unpaid')
+                ->where('status', Reservation::STATUS_UNPAID)
                 ->latest()
                 ->first();
 
@@ -158,14 +129,7 @@ class ReservationController extends Controller
                 ], 400);
             }
 
-            $reservation->status = Reservation::STATUS_CANCELLED;
-            $reservation->cancelled_at = now();
-            $reservation->save();
-
-            // Make sure the room becomes available again
-            if ($reservation->room) {
-                $reservation->room->update(['status' => 'Available']);
-            }
+            $this->service->cancel($reservation);
 
             return response()->json([
                 'success' => true,

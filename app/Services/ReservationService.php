@@ -3,6 +3,7 @@ namespace App\Services;
 
 use App\Models\Reservation;
 use App\Models\Room;
+use App\Models\Tax;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -17,17 +18,7 @@ class ReservationService
         $query = Reservation::with('room.category');
 
         if (!empty($filters['search'])) {
-            $search = '%' . $filters['search'] . '%';
-            $query->where(function($q) use ($search) {
-                $q->where('transaction_id', 'like', $search)
-                  ->orWhere('guest_name', 'like', $search)
-                  ->orWhere('guest_phone', 'like', $search)
-                  ->orWhere('guest_email', 'like', $search)
-                  ->orWhere('identity_number', 'like', $search)
-                  ->orWhereHas('room', function($r) use ($search) {
-                      $r->where('room_number', 'like', $search);
-                  });
-            });
+            $query->search($filters['search']);
         }
 
         if (!empty($filters['room_id'])) {
@@ -60,6 +51,8 @@ class ReservationService
     public function create(array $data): Reservation
     {
         return DB::transaction(function () use ($data) {
+            $data = $this->calculateTotals($data);
+
             if ($data['booking_type'] === 'Booking' && empty($data['checked_in_at'])) {
                 $data['checked_in_at'] = now();
             }
@@ -67,7 +60,7 @@ class ReservationService
             $reservation = Reservation::create($data);
 
             // Update Room status based on booking type
-            $roomStatus = ($data['booking_type'] === 'Reservation') ? 'Reserved' : 'Occupied';
+            $roomStatus = ($data['booking_type'] === 'Reservation') ? Reservation::STATUS_RESERVED : Reservation::STATUS_OCCUPIED;
             
             Room::where('id', $data['room_id'])->update(['status' => $roomStatus]);
 
@@ -81,15 +74,20 @@ class ReservationService
     public function update(Reservation $reservation, array $data): Reservation
     {
         return DB::transaction(function () use ($reservation, $data) {
+            // Recalculate totals if subtotal changes and it's not fully paid
+            if (isset($data['subtotal']) && $reservation->payment_status !== 'Completed' && $reservation->status !== Reservation::STATUS_PAID) {
+                $data = $this->calculateTotals($data);
+            }
+
             $reservation->update($data);
             
             // If checking out/paying, the room status changes to Cleaning
-            if (isset($data['status']) && $data['status'] === 'Paid') {
-                Room::where('id', $reservation->room_id)->update(['status' => 'Cleaning']);
+            if (isset($data['status']) && $data['status'] === Reservation::STATUS_PAID) {
+                Room::where('id', $reservation->room_id)->update(['status' => Reservation::STATUS_CLEANING]);
             }
             // If checking in a guest for a reserved room
-            elseif (isset($data['checked_in_at']) && $reservation->room->status === 'Reserved') {
-                Room::where('id', $reservation->room_id)->update(['status' => 'Occupied']);
+            elseif (isset($data['checked_in_at']) && $reservation->room->status === Reservation::STATUS_RESERVED) {
+                Room::where('id', $reservation->room_id)->update(['status' => Reservation::STATUS_OCCUPIED]);
                 
                 if (empty($reservation->checked_in_at)) {
                     $reservation->checked_in_at = now();
@@ -102,6 +100,43 @@ class ReservationService
     }
 
     /**
+     * Cancel a reservation
+     */
+    public function cancel(Reservation $reservation): Reservation
+    {
+        return DB::transaction(function () use ($reservation) {
+            $reservation->status = Reservation::STATUS_CANCELLED;
+            $reservation->cancelled_at = now();
+            $reservation->save();
+
+            if ($reservation->room) {
+                $reservation->room->update(['status' => Reservation::STATUS_AVAILABLE]);
+            }
+
+            return $reservation;
+        });
+    }
+
+    /**
+     * Internal: Calculate taxes and totals
+     */
+    private function calculateTotals(array $data): array
+    {
+        if (!isset($data['subtotal'])) {
+            return $data;
+        }
+
+        $activeTaxes = Tax::active()->get();
+        $taxPercent = $activeTaxes->sum('rate') ?? 0;
+        
+        $data['tax_percent'] = $taxPercent;
+        $data['tax_amount'] = $data['subtotal'] * ($taxPercent / 100);
+        $data['total_amount'] = $data['subtotal'] + $data['tax_amount'];
+
+        return $data;
+    }
+
+    /**
      * Delete a reservation 
      */
     public function delete(Reservation $reservation): void
@@ -109,8 +144,7 @@ class ReservationService
         DB::transaction(function () use ($reservation) {
             $roomId = $reservation->room_id;
             $reservation->delete();
-            // Optional: reset room to Available if it was active
-            Room::where('id', $roomId)->update(['status' => 'Available']);
+            Room::where('id', $roomId)->update(['status' => Reservation::STATUS_AVAILABLE]);
         });
     }
 

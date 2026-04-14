@@ -24,12 +24,6 @@ class ReservationRequest extends FormRequest
             'payment_method'            => 'nullable|string|max:50',
             'subtotal'                  => 'nullable|numeric|min:0',
 
-            'tax_percent'               => 'nullable|numeric|min:0|max:100',
-            'global_discount_percent'   => 'nullable|numeric|min:0|max:100',
-            'category_discount_percent' => 'nullable|numeric|min:0|max:100',
-            'tax_amount'                => 'nullable|numeric|min:0',
-            'discount_amount'           => 'nullable|numeric|min:0',
-            'total_amount'              => 'nullable|numeric|min:0',
             'booking_type'              => "$req|in:Booking,Reservation",
             'status'                    => 'nullable|in:Paid,Unpaid,Reserved,Occupied,Cleaning,Available,Cancelled',
             'payment_status'            => 'nullable|string',

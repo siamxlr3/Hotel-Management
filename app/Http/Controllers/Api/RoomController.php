@@ -7,6 +7,7 @@ use App\Models\Room;
 use App\Services\RoomService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class RoomController extends Controller
 {
@@ -59,8 +60,14 @@ class RoomController extends Controller
     public function updateStatus(Request $request, Room $room): JsonResponse
     {
         try {
-            $request->validate(['status' => 'required|string']);
-            $room->update(['status' => $request->status]);
+            $data = $request->validate([
+                'status' => ['required', Rule::in([
+                    Room::STATUS_AVAILABLE, Room::STATUS_OCCUPIED, Room::STATUS_RESERVED,
+                    Room::STATUS_MAINTENANCE, Room::STATUS_CLEANING
+                ])]
+            ]);
+
+            $this->service->updateStatus($room, $data['status']);
             return response()->json(['success' => true, 'message' => 'Room status updated successfully.']);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);

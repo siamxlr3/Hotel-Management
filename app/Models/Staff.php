@@ -16,6 +16,9 @@ class Staff extends Model
         'shift_id', 'joined_at', 'status'
     ];
 
+    const STATUS_ACTIVE = 'Active';
+    const STATUS_INACTIVE = 'Inactive';
+
     protected $appends = ['image_url'];
 
     protected $casts = [

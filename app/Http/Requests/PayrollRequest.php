@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Payroll;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class PayrollRequest extends FormRequest
 {
@@ -11,14 +13,14 @@ class PayrollRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'staff_id' => 'required|exists:staff,id',
-            'month' => 'required|string',
-            'year' => 'required|integer|min:2000|max:' . (date('Y') + 1),
+            'staff_id'   => 'required|exists:staff,id',
+            'month'      => 'required|string',
+            'year'       => 'required|integer|min:2000|max:' . (date('Y') + 1),
             'net_salary' => 'required|numeric|min:0',
-            'bonus' => 'nullable|numeric|min:0',
-            'deduction' => 'nullable|numeric|min:0',
-            'status' => 'required|in:Paid,Unpaid',
-            'paid_at' => 'nullable|date',
+            'bonus'      => 'nullable|numeric|min:0',
+            'deduction'  => 'nullable|numeric|min:0',
+            'status'     => ['required', Rule::in([Payroll::STATUS_PAID, Payroll::STATUS_UNPAID])],
+            'paid_at'    => 'nullable|date',
         ];
     }
 }

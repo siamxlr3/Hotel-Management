@@ -16,7 +16,7 @@ class LeaveRequest extends FormRequest
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
             'reason' => 'nullable|string',
-            'status' => 'required|in:Pending,Approved,Rejected',
+            'status' => ['required', Rule::in([Leave::STATUS_PENDING, Leave::STATUS_APPROVED, Leave::STATUS_REJECTED])],
         ];
     }
 }

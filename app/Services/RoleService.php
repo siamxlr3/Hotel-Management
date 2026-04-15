@@ -12,7 +12,7 @@ class RoleService
         $query = Role::query();
 
         if (!empty($filters['search'])) {
-            $query->where('name', 'LIKE', '%' . $filters['search'] . '%');
+            $query->search($filters['search']);
         }
 
         if (!empty($filters['status'])) {
@@ -35,6 +35,13 @@ class RoleService
 
     public function delete(Role $role): void
     {
+        if ($role->staff()->exists()) {
+            throw new \Exception(
+                'Cannot delete this role because staff members are currently assigned to it. ' .
+                'Please reassign those staff members first.'
+            );
+        }
+
         $role->delete();
     }
 }

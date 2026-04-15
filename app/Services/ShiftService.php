@@ -12,7 +12,7 @@ class ShiftService
         $query = Shift::query();
 
         if (!empty($filters['search'])) {
-            $query->where('name', 'LIKE', '%' . $filters['search'] . '%');
+            $query->search($filters['search']);
         }
 
         if (!empty($filters['status'])) {
@@ -35,6 +35,13 @@ class ShiftService
 
     public function delete(Shift $shift): void
     {
+        if ($shift->staff()->exists()) {
+            throw new \Exception(
+                'Cannot delete this shift because staff members are still assigned to it. ' .
+                'Please reassign or remove those staff members first.'
+            );
+        }
+
         $shift->delete();
     }
 }

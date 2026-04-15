@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LeaveRequest;
 use App\Models\Leave;
+use App\Http\Resources\LeaveResource;
 use App\Services\LeaveService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Exception;
 
 class LeaveController extends Controller
 {
@@ -19,7 +21,7 @@ class LeaveController extends Controller
             $data = $this->service->getAll($request->all());
             return response()->json([
                 'success' => true,
-                'data' => $data->items(),
+                'data' => LeaveResource::collection($data->items()),
                 'meta' => [
                     'current_page' => $data->currentPage(),
                     'last_page' => $data->lastPage(),
@@ -27,7 +29,7 @@ class LeaveController extends Controller
                     'total' => $data->total(),
                 ],
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
@@ -36,34 +38,34 @@ class LeaveController extends Controller
     {
         try {
             $leave = $this->service->create($request->validated());
-            return response()->json(['success' => true, 'data' => $leave, 'message' => 'Leave application submitted.'], 201);
-        } catch (\Exception $e) {
+            return response()->json(['success' => true, 'data' => new LeaveResource($leave), 'message' => 'Leave application submitted.'], 201);
+        } catch (Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
 
-    public function show(Leave $leaf): JsonResponse
+    public function show(Leave $leave): JsonResponse
     {
-        $leaf->load(['staff', 'leaveType']);
-        return response()->json(['success' => true, 'data' => $leaf]);
+        $leave->load(['staff', 'leaveType']);
+        return response()->json(['success' => true, 'data' => new LeaveResource($leave)]);
     }
 
-    public function update(LeaveRequest $request, Leave $leaf): JsonResponse
+    public function update(LeaveRequest $request, Leave $leave): JsonResponse
     {
         try {
-            $updated = $this->service->update($leaf, $request->validated());
-            return response()->json(['success' => true, 'data' => $updated, 'message' => 'Leave updated successfully.']);
-        } catch (\Exception $e) {
+            $updated = $this->service->update($leave, $request->validated());
+            return response()->json(['success' => true, 'data' => new LeaveResource($updated), 'message' => 'Leave updated successfully.']);
+        } catch (Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
 
-    public function destroy(Leave $leaf): JsonResponse
+    public function destroy(Leave $leave): JsonResponse
     {
         try {
-            $this->service->delete($leaf);
+            $this->service->delete($leave);
             return response()->json(['success' => true, 'message' => 'Leave deleted successfully.']);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }

@@ -8,6 +8,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 class Room extends Model
 {
     use HasFactory;
+ 
+    const STATUS_AVAILABLE   = 'Available';
+    const STATUS_OCCUPIED    = 'Occupied';
+    const STATUS_RESERVED    = 'Reserved';
+    const STATUS_MAINTENANCE = 'Maintenance';
+    const STATUS_CLEANING    = 'Cleaning';
+
 
     protected $fillable = [
         'room_number', 'category_id', 'base_price',
@@ -39,7 +46,7 @@ class Room extends Model
 
     public function scopeActive($query)
     {
-        return $query->where('status', 'Available');
+        return $query->where('status', self::STATUS_AVAILABLE);
     }
 
     public function scopeSearch($query, string $search)

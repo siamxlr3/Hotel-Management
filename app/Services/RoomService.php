@@ -8,6 +8,8 @@ use Illuminate\Pagination\LengthAwarePaginator;
 class RoomService
 {
     use HandlesImageUpload;
+ 
+    const STORAGE_DIR = 'room';
 
     public function getAll(array $filters): LengthAwarePaginator
     {
@@ -37,7 +39,7 @@ class RoomService
     public function create(array $data): Room
     {
         if (isset($data['new_images']) && is_array($data['new_images'])) {
-            $data['images'] = $this->storeMultipleImages($data['new_images'], 'room');
+            $data['images'] = $this->storeMultipleImages($data['new_images'], self::STORAGE_DIR);
         }
 
         // Clean up data to avoid passing file objects to create
@@ -53,7 +55,7 @@ class RoomService
         $newFiles      = $data['new_images'] ?? [];
 
         // 1. Image management via Trait
-        $newPaths = $this->storeMultipleImages($newFiles, 'room', array_diff($room->images ?? [], $existingPaths));
+        $newPaths = $this->storeMultipleImages($newFiles, self::STORAGE_DIR, array_diff($room->images ?? [], $existingPaths));
 
         // 2. Combine remaining and new paths
         $data['images'] = array_merge($existingPaths, $newPaths);
@@ -69,5 +71,10 @@ class RoomService
     {
         $this->deleteImages($room->images ?? []);
         $room->delete();
+    }
+
+    public function updateStatus(Room $room, string $status): void
+    {
+        $room->update(['status' => $status]);
     }
 }

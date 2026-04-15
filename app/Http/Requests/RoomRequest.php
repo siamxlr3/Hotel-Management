@@ -27,7 +27,13 @@ class RoomRequest extends FormRequest
             'new_images'      => 'nullable|array',
             'new_images.*'    => 'image|mimes:jpg,jpeg,png,webp',
             'floor'           => [$req, 'required', 'integer', 'min:1', 'max:200'],
-            'status'          => [$req, 'required', 'in:Available,Occupied,Reserved,Maintenance,Cleaning'],
+            'status'          => [$req, 'required', Rule::in([
+                Room::STATUS_AVAILABLE,
+                Room::STATUS_OCCUPIED,
+                Room::STATUS_RESERVED,
+                Room::STATUS_MAINTENANCE,
+                Room::STATUS_CLEANING,
+            ])],
         ];
 
         return $rules;

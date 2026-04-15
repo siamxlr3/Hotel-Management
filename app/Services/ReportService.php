@@ -22,7 +22,7 @@ class ReportService
         $newBookings = Reservation::whereBetween('created_at', [$start, $end])->count();
         
         $totalRevenue = Reservation::whereBetween('created_at', [$start, $end])
-            ->where('status', 'Paid')
+            ->where('status', Reservation::STATUS_PAID)
             ->sum('total_amount');
             
         $totalExpenseItems = Expense::whereBetween('date', [$start->format('Y-m-d'), $end->format('Y-m-d')])
@@ -36,9 +36,21 @@ class ReportService
         $endYear = $end->year;
         
         $rawPayrollRecords = Payroll::select('paid_at', 'month', 'year', 'net_salary', 'bonus', 'deduction')
-            ->whereBetween('year', [$startYear, $endYear])
-            ->whereIn('month', $this->getMonthsBetween($start, $end))
-            ->toBase() // Memory optimization: returns raw scalar objects, completely bypassing heavy Eloquent hydration
+            ->where(function($q) use ($start, $end) {
+                $q->where('year', '>', $start->year)
+                  ->orWhere(function($sub) use ($start) {
+                      $sub->where('year', $start->year)
+                          ->whereIn('month', $this->getMonthsFrom($start->format('F')));
+                  });
+            })
+            ->where(function($q) use ($end) {
+                $q->where('year', '<', $end->year)
+                  ->orWhere(function($sub) use ($end) {
+                      $sub->where('year', $end->year)
+                          ->whereIn('month', $this->getMonthsTo($end->format('F')));
+                  });
+            })
+            ->toBase()
             ->get();
 
         $payrollByDate = [];
@@ -68,10 +80,10 @@ class ReportService
         $profitMargin = $totalRevenue - $totalExpense;
 
         $stats = [
-            [ 'id' => 1, 'label' => 'New Bookings',  'value' => (string) $newBookings, 'change' => '', 'positive' => true, 'icon' => 'calendar' ],
-            [ 'id' => 2, 'label' => 'Total Revenue', 'value' => '$' . number_format($totalRevenue, 2), 'change' => '', 'positive' => true, 'icon' => 'dollar' ],
-            [ 'id' => 3, 'label' => 'Total Expense', 'value' => '$' . number_format($totalExpense, 2), 'change' => '', 'positive' => false, 'icon' => 'dollar' ],
-            [ 'id' => 4, 'label' => 'Profit Margin', 'value' => '$' . number_format($profitMargin, 2), 'change' => '', 'positive' => $profitMargin >= 0, 'icon' => 'dollar' ],
+            [ 'id' => 1, 'label' => 'New Bookings',  'value' => $newBookings, 'change' => '', 'positive' => true, 'icon' => 'calendar' ],
+            [ 'id' => 2, 'label' => 'Total Revenue', 'value' => $totalRevenue, 'change' => '', 'positive' => true, 'icon' => 'dollar' ],
+            [ 'id' => 3, 'label' => 'Total Expense', 'value' => $totalExpense, 'change' => '', 'positive' => false, 'icon' => 'dollar' ],
+            [ 'id' => 4, 'label' => 'Profit Margin', 'value' => $profitMargin, 'change' => '', 'positive' => $profitMargin >= 0, 'icon' => 'dollar' ],
         ];
 
         // 2. Room Availability (Live snapshot, ignores dates typically, but we return current stats)
@@ -82,19 +94,20 @@ class ReportService
             ->toArray();
             
         $roomAvailability = [
-            'occupied'  => $roomStatusCounts['Occupied'] ?? 0,
-            'reserved'  => $roomStatusCounts['Reserved'] ?? 0,
-            'available' => $roomStatusCounts['Available'] ?? 0,
-            'notReady'  => ($roomStatusCounts['Cleaning'] ?? 0) + ($roomStatusCounts['Maintenance'] ?? 0),
+            'occupied'  => $roomStatusCounts[Room::STATUS_OCCUPIED] ?? 0,
+            'reserved'  => $roomStatusCounts[Room::STATUS_RESERVED] ?? 0,
+            'available' => $roomStatusCounts[Room::STATUS_AVAILABLE] ?? 0,
+            'notReady'  => ($roomStatusCounts[Room::STATUS_CLEANING] ?? 0) + ($roomStatusCounts[Room::STATUS_MAINTENANCE] ?? 0),
             'total'     => array_sum($roomStatusCounts),
         ];
 
         // 3. Reservations Data (Booked vs Canceled per day)
         // We group by DATE(created_at) for bookings and cancelled reservations.
-        $reservationsRaw = Reservation::select(
+        $reservationsRaw = Reservation::query()
+            ->select(
                 DB::raw('DATE(created_at) as date'),
-                DB::raw('SUM(CASE WHEN status != "Cancelled" THEN 1 ELSE 0 END) as booked'),
-                DB::raw('SUM(CASE WHEN status = "Cancelled" THEN 1 ELSE 0 END) as canceled')
+                DB::raw('SUM(CASE WHEN status != "' . Reservation::STATUS_CANCELLED . '" THEN 1 ELSE 0 END) as booked'),
+                DB::raw('SUM(CASE WHEN status = "' . Reservation::STATUS_CANCELLED . '" THEN 1 ELSE 0 END) as canceled')
             )
             ->whereBetween('created_at', [$start, $end])
             ->groupBy('date')
@@ -112,7 +125,7 @@ class ReportService
         // 4. Revenue vs Expense per day
         $revenueRaw = Reservation::select(DB::raw('DATE(created_at) as date'), DB::raw('SUM(total_amount) as revenue'))
             ->whereBetween('created_at', [$start, $end])
-            ->where('status', 'Paid')
+            ->where('status', Reservation::STATUS_PAID)
             ->groupBy('date')
             ->pluck('revenue', 'date');
             
@@ -153,7 +166,7 @@ class ReportService
                     'guest'    => $res->guest_name,
                     'type'     => $res->room ? $res->room->category->name : 'N/A',
                     'room'     => $res->room ? 'Room ' . $res->room->room_number : 'N/A',
-                    'duration' => $res->person_count . ' Pax', // Quick workaround, or calculate nights
+                    'pax'      => (int) $res->person_count, 
                     'checkIn'  => Carbon::parse($res->check_in)->format('F j, Y'),
                     'checkOut' => Carbon::parse($res->check_out)->format('F j, Y'),
                     'status'   => $res->status,
@@ -161,22 +174,25 @@ class ReportService
             });
 
         return [
-            'stats'            => $stats,
-            'roomAvailability' => $roomAvailability,
-            'reservationsData' => $reservationsData,
-            'revenueData'      => $revenueData,
-            'bookings'         => $bookings,
+            'stats'               => $stats,
+            'currentRoomSnapshot' => $roomAvailability, // Renamed for clarity
+            'reservationsData'    => $reservationsData,
+            'revenueData'         => $revenueData,
+            'bookings'            => $bookings,
         ];
     }
     
-    private function getMonthsBetween($start, $end)
+    private function getMonthsFrom($startMonth)
     {
-        $months = [];
-        $current = $start->copy()->startOfMonth();
-        while($current <= $end) {
-            $months[] = $current->format('F');
-            $current->addMonth();
-        }
-        return $months;
+        $months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        $index = array_search($startMonth, $months);
+        return array_slice($months, $index);
+    }
+
+    private function getMonthsTo($endMonth)
+    {
+        $months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        $index = array_search($endMonth, $months);
+        return array_slice($months, 0, $index + 1);
     }
 }

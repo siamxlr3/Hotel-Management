@@ -80,10 +80,10 @@ class ReportService
         $profitMargin = $totalRevenue - $totalExpense;
 
         $stats = [
-            [ 'id' => 1, 'label' => 'New Bookings',  'value' => $newBookings, 'change' => '', 'positive' => true, 'icon' => 'calendar' ],
-            [ 'id' => 2, 'label' => 'Total Revenue', 'value' => $totalRevenue, 'change' => '', 'positive' => true, 'icon' => 'dollar' ],
-            [ 'id' => 3, 'label' => 'Total Expense', 'value' => $totalExpense, 'change' => '', 'positive' => false, 'icon' => 'dollar' ],
-            [ 'id' => 4, 'label' => 'Profit Margin', 'value' => $profitMargin, 'change' => '', 'positive' => $profitMargin >= 0, 'icon' => 'dollar' ],
+            [ 'id' => 1, 'label' => 'New Bookings',  'value' => $newBookings, 'change' => '', 'positive' => true, 'icon' => 'calendar', 'isCurrency' => false ],
+            [ 'id' => 2, 'label' => 'Total Revenue', 'value' => $totalRevenue, 'change' => '', 'positive' => true, 'icon' => 'dollar', 'isCurrency' => true ],
+            [ 'id' => 3, 'label' => 'Total Expense', 'value' => $totalExpense, 'change' => '', 'positive' => false, 'icon' => 'dollar', 'isCurrency' => true ],
+            [ 'id' => 4, 'label' => 'Profit Margin', 'value' => $profitMargin, 'change' => '', 'positive' => $profitMargin >= 0, 'icon' => 'dollar', 'isCurrency' => true ],
         ];
 
         // 2. Room Availability (Live snapshot, ignores dates typically, but we return current stats)
@@ -174,11 +174,11 @@ class ReportService
             });
 
         return [
-            'stats'               => $stats,
-            'currentRoomSnapshot' => $roomAvailability, // Renamed for clarity
-            'reservationsData'    => $reservationsData,
-            'revenueData'         => $revenueData,
-            'bookings'            => $bookings,
+            'stats'            => $stats,
+            'roomAvailability' => $roomAvailability,
+            'reservationsData' => $reservationsData,
+            'revenueData'      => $revenueData,
+            'bookings'         => $bookings,
         ];
     }
     

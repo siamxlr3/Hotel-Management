@@ -24,18 +24,26 @@ const iconMap = {
 import { useSelector } from 'react-redux';
 import { translate, formatPrice, translateDigits } from '../../utils/localeHelper';
 
-export default function StatCard({ label, value, change, positive, icon }) {
+export default function StatCard({ label, title, value, change, positive, icon, isCurrency }) {
   const { language, currency } = useSelector(state => state.locale);
 
-  // If value starts with $, we re-format it using formatPrice
-  const displayValue = value.startsWith('$') 
-    ? formatPrice(parseFloat(value.replace(/[$,]/g, '')), currency, language)
+  // If value is a number and isCurrency is true, or if it's a string starting with $, format it
+  const shouldFormatPrice = isCurrency || (typeof value === 'string' && value.startsWith('$'));
+  
+  const numericValue = typeof value === 'string' 
+    ? parseFloat(value.replace(/[$,]/g, '')) 
+    : value;
+
+  const displayValue = shouldFormatPrice
+    ? formatPrice(numericValue, currency, language)
     : translateDigits(value, language);
+
+  const displayLabel = label || title;
 
   return (
     <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex-1 min-w-0">
       <div className="flex items-start justify-between mb-3">
-        <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">{translate(label, language)}</p>
+        <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">{translate(displayLabel, language)}</p>
         <div className="w-9 h-9 rounded-xl bg-[#E8F5E0] flex items-center justify-center text-[#4CAF50]">
           {iconMap[icon]}
         </div>

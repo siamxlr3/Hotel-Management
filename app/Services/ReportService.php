@@ -166,7 +166,7 @@ class ReportService
                     'guest'    => $res->guest_name,
                     'type'     => $res->room ? $res->room->category->name : 'N/A',
                     'room'     => $res->room ? 'Room ' . $res->room->room_number : 'N/A',
-                    'pax'      => (int) $res->person_count, 
+                    'duration' => $res->person_count . ' Pax', 
                     'checkIn'  => Carbon::parse($res->check_in)->format('F j, Y'),
                     'checkOut' => Carbon::parse($res->check_out)->format('F j, Y'),
                     'status'   => $res->status,

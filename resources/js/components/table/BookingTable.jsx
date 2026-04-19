@@ -66,13 +66,13 @@ export default function BookingTable({ bookings }) {
                   </span>
                 </td>
                 <td className="px-5 py-3.5 text-gray-600">
-                  {b.room.startsWith('Room ') 
-                    ? `${translate('Room', language)} ${translateDigits(b.room.replace('Room ', ''), language)}`
+                  {(b.room || '').startsWith('Room ') 
+                    ? `${translate('Room', language)} ${translateDigits((b.room || '').replace('Room ', ''), language)}`
                     : translate(b.room, language)}
                 </td>
                 <td className="px-5 py-3.5 text-gray-600">
-                  {b.duration.includes(' Pax') 
-                    ? `${translateDigits(b.duration.replace(' Pax', ''), language)} ${translate('Pax', language)}`
+                  {(b.duration || '').includes(' Pax') 
+                    ? `${translateDigits((b.duration || '').replace(' Pax', ''), language)} ${translate('Pax', language)}`
                     : translateDigits(b.duration, language)}
                 </td>
                 <td className="px-5 py-3.5 text-gray-600 whitespace-nowrap">{formatDate(b.checkIn)} — {formatDate(b.checkOut)}</td>

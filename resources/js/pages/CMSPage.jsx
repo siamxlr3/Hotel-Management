@@ -1044,12 +1044,12 @@ export default function CMSPage() {
   const [deleteItem,setDeleteItem]= useState(null);
 
   // Queries (with skip)
-  const { data: homeData, isFetching: hL, refetch: refetchHome } = useGetHomeQuery({ page }, { skip: activeTab !== 'home' });
-  const { data: aboutData, isFetching: aL, refetch: refetchAbout } = useGetAboutQuery({ page }, { skip: activeTab !== 'about' });
-  const { data: featData, isFetching: fL, refetch: refetchFeat } = useGetFeatureQuery({ page }, { skip: activeTab !== 'feature' });
-  const { data: offerData, isFetching: oL, refetch: refetchOffer } = useGetOfferQuery({ page }, { skip: activeTab !== 'offer' });
-  const { data: gallData, isFetching: gL, refetch: refetchGall } = useGetGalleryQuery({ page }, { skip: activeTab !== 'gallery' });
-  const { data: contData, isFetching: cL, refetch: refetchCont } = useGetContactQuery({ page }, { skip: activeTab !== 'contact' });
+  const { data: homeData, isFetching: hL, error: hE, refetch: refetchHome } = useGetHomeQuery({ page }, { skip: activeTab !== 'home' });
+  const { data: aboutData, isFetching: aL, error: aE, refetch: refetchAbout } = useGetAboutQuery({ page }, { skip: activeTab !== 'about' });
+  const { data: featData, isFetching: fL, error: fE, refetch: refetchFeat } = useGetFeatureQuery({ page }, { skip: activeTab !== 'feature' });
+  const { data: offerData, isFetching: oL, error: oE, refetch: refetchOffer } = useGetOfferQuery({ page }, { skip: activeTab !== 'offer' });
+  const { data: gallData, isFetching: gL, error: gE, refetch: refetchGall } = useGetGalleryQuery({ page }, { skip: activeTab !== 'gallery' });
+  const { data: contData, isFetching: cL, error: cE, refetch: refetchCont } = useGetContactQuery({ page }, { skip: activeTab !== 'contact' });
 
   // Mutations
   const [createHome, { isLoading: hS }] = useCreateHomeMutation();
@@ -1079,6 +1079,15 @@ export default function CMSPage() {
   const isLoading = hL || aL || fL || oL || gL || cL;
   const isActionLoading = hS || hU || aS || aU || fS || fU || oS || oU || gS || gU || cS || cU;
   const isDeleting = hD || aD || fD || oD || gD || cD;
+
+  // Global Error Toast for Queries
+  useEffect(() => {
+    const err = hE || aE || fE || oE || gE || cE;
+    if (err) {
+      toast.error(err?.data?.message || t('Failed to load data from server'));
+      console.error("CMS Load Error:", err);
+    }
+  }, [hE, aE, fE, oE, gE, cE]);
 
   const currentData = {
     home: homeData, about: aboutData, feature: featData, 
@@ -1209,7 +1218,7 @@ export default function CMSPage() {
               {hL ? <Skeleton cols={4}/> :
                homeData?.data?.length===0
                  ? <tr><td colSpan={4} className="px-5 py-14 text-center text-gray-400 text-sm">{t('No entries found.')}</td></tr>
-                 : homeData.data.map((item,i) => (
+                 : homeData?.data?.map((item,i) => (
                     <motion.tr key={item.id} initial={{opacity:0,y:5}} animate={{opacity:1,y:0}} transition={{delay:i*0.03}}
                       className="border-b border-gray-50 hover:bg-gray-50/60 transition-colors">
                       <td className="px-5 py-3.5 font-semibold text-gray-800">{item.hotel_name}</td>
@@ -1243,7 +1252,7 @@ export default function CMSPage() {
               {aL ? <Skeleton cols={3}/> :
                aboutData?.data?.length===0
                  ? <tr><td colSpan={3} className="px-5 py-14 text-center text-gray-400 text-sm">{t('No entries found.')}</td></tr>
-                 : aboutData.data.map((item,i) => (
+                 : aboutData?.data?.map((item,i) => (
                     <motion.tr key={item.id} initial={{opacity:0,y:5}} animate={{opacity:1,y:0}} transition={{delay:i*0.03}}
                       className="border-b border-gray-50 hover:bg-gray-50/60 transition-colors">
                       <td className="px-5 py-3.5 text-gray-600 max-w-xs">
@@ -1278,7 +1287,7 @@ export default function CMSPage() {
               {fL ? <Skeleton cols={3}/> :
                featData?.data?.length===0
                  ? <tr><td colSpan={3} className="px-5 py-14 text-center text-gray-400 text-sm">{t('No entries found.')}</td></tr>
-                 : featData.data.map((item,i) => (
+                 : featData?.data?.map((item,i) => (
                     <motion.tr key={item.id} initial={{opacity:0,y:5}} animate={{opacity:1,y:0}} transition={{delay:i*0.03}}
                       className="border-b border-gray-50 hover:bg-gray-50/60 transition-colors">
                       <td className="px-5 py-3.5 font-semibold text-gray-800 whitespace-nowrap">{item.title}</td>
@@ -1313,7 +1322,7 @@ export default function CMSPage() {
               {oL ? <Skeleton cols={5}/> :
                offerData?.data?.length===0
                  ? <tr><td colSpan={5} className="px-5 py-14 text-center text-gray-400 text-sm">{t('No entries found.')}</td></tr>
-                 : offerData.data.map((item,i) => (
+                 : offerData?.data?.map((item,i) => (
                     <motion.tr key={item.id} initial={{opacity:0,y:5}} animate={{opacity:1,y:0}} transition={{delay:i*0.03}}
                       className="border-b border-gray-50 hover:bg-gray-50/60 transition-colors">
                       <td className="px-5 py-3.5 font-semibold text-gray-800">{item.title}</td>
@@ -1357,7 +1366,7 @@ export default function CMSPage() {
               {gL ? <Skeleton cols={4}/> :
                gallData?.data?.length===0
                  ? <tr><td colSpan={4} className="px-5 py-14 text-center text-gray-400 text-sm">{t('No entries found.')}</td></tr>
-                 : gallData.data.map((item,i) => (
+                 : gallData?.data?.map((item,i) => (
                     <motion.tr key={item.id} initial={{opacity:0,y:5}} animate={{opacity:1,y:0}} transition={{delay:i*0.03}}
                       className="border-b border-gray-50 hover:bg-gray-50/60 transition-colors">
                       <td className="px-5 py-3.5"><ImgStrip urls={item.gallery_urls||[]}/></td>
@@ -1397,7 +1406,7 @@ export default function CMSPage() {
               {cL ? <Skeleton cols={6}/> :
                contData?.data?.length===0
                  ? <tr><td colSpan={6} className="px-5 py-14 text-center text-gray-400 text-sm">{t('No entries found.')}</td></tr>
-                 : contData.data.map((item,i) => (
+                 : contData?.data?.map((item,i) => (
                     <motion.tr key={item.id} initial={{opacity:0,y:5}} animate={{opacity:1,y:0}} transition={{delay:i*0.03}}
                       className="border-b border-gray-50 hover:bg-gray-50/60 transition-colors">
                       <td className="px-5 py-3.5 text-gray-700 text-xs whitespace-nowrap">{item.phone||'—'}</td>

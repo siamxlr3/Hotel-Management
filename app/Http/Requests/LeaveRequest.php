@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Leave;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class LeaveRequest extends FormRequest
 {

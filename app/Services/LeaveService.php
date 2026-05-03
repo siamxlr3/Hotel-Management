@@ -49,13 +49,16 @@ class LeaveService
     public function update(Leave $leave, array $data): Leave
     {
         if (isset($data['status']) && $data['status'] === Leave::STATUS_APPROVED) {
-            if ($this->hasOverlap($leave->staff_id, $data['start_date'] ?? $leave->start_date, $data['end_date'] ?? $leave->end_date, $leave->id)) {
+            // Use the incoming staff_id (may have changed), not the old one
+            $staffId = $data['staff_id'] ?? $leave->staff_id;
+            if ($this->hasOverlap($staffId, $data['start_date'] ?? $leave->start_date, $data['end_date'] ?? $leave->end_date, $leave->id)) {
                 throw new \Exception('This staff member already has an approved leave during the selected dates.');
             }
         }
 
         $leave->update($data);
-        return $leave;
+        // Refresh the model so updated scalar fields AND relationships are fresh
+        return $leave->refresh()->load(['staff', 'leaveType']);
     }
 
     public function delete(Leave $leave): void
